@@ -4,6 +4,7 @@ const state = {
   members: [],
   requests: [],
   tasks: [],
+  reminders: [],
   trips: [],
   quotes: [],
   orders: [],
@@ -68,6 +69,8 @@ const labels = {
   awaiting_review: "等待人工審核", applied: "已建立行程",
   hotel: "飯店", flight: "航班", transfer: "接送", activity: "活動",
   dining: "餐飲", other: "其他",
+  scheduled: "待處理", acknowledged: "已處理", dismissed: "已略過",
+  task_due: "任務期限", payment_follow_up: "付款追蹤", trip_countdown: "出發確認",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -183,10 +186,11 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
+      api("/api/reminders?limit=100"),
       api("/api/trips"),
       api("/api/quotes"),
       api("/api/orders"),
@@ -221,6 +225,7 @@ function renderAll() {
   renderMembers();
   renderPipeline();
   renderTasks();
+  renderReminders();
   renderTripStudio();
   renderOrders();
   renderAIPlans();
@@ -319,6 +324,22 @@ function renderTasks() {
     </article>`).join("") : '<div class="panel empty-state">目前沒有符合條件的任務。</div>';
 }
 
+function renderReminders() {
+  const active = state.reminders.filter((item) => item.status === "scheduled");
+  $("#reminder-summary").innerHTML = `
+    <div><span class="provider-dot ${active.length ? "live" : "local"}"></span><div><strong>${active.length} 筆待處理提醒</strong><small>規則掃描 · Human-in-the-loop</small></div></div>
+    <p>相同來源與期限只會建立一次；處理結果會留下審核人員與時間。</p>`;
+  $("#reminder-board").innerHTML = state.reminders.length ? state.reminders.map((item) => {
+    const payload = item.payload || {};
+    return `<article class="panel reminder-card ${escapeHtml(payload.severity || "normal")}">
+      <div class="reminder-icon">${item.reminder_type === "payment_follow_up" ? "$" : item.reminder_type === "trip_countdown" ? "✈" : "!"}</div>
+      <div class="reminder-copy"><p class="eyebrow">${escapeHtml(labels[item.reminder_type] || item.reminder_type)} · ${escapeHtml(payload.severity || "normal")}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(payload.reason || "需要人工確認")}</p><small>建議：${escapeHtml(payload.recommended_action || "檢查最新狀態")} · ${formatDate(item.scheduled_at, true)}</small></div>
+      <span class="status-badge ${escapeHtml(item.status)}">${escapeHtml(labels[item.status] || item.status)}</span>
+      <div class="reminder-actions">${item.status === "scheduled" ? `<button class="button primary compact" data-reminder-status="${item.id}" data-target-status="acknowledged">已處理</button><button class="button ghost compact" data-reminder-status="${item.id}" data-target-status="dismissed">略過</button>` : `<small>${item.reviewed_at ? formatDate(item.reviewed_at, true) : "已完成審核"}</small>`}</div>
+    </article>`;
+  }).join("") : '<div class="panel empty-state">尚無提醒。按「掃描營運風險」檢查目前資料。</div>';
+}
+
 function populateFormOptions() {
   const memberOptions = state.members.map((member) => `<option value="${member.id}">${escapeHtml(member.name)}</option>`).join("");
   $("#request-member").innerHTML = memberOptions || '<option value="">請先建立會員</option>';
@@ -332,7 +353,7 @@ function showSection(section) {
   $$(".workspace-section").forEach((element) => element.classList.add("hidden"));
   $(`#section-${section}`).classList.remove("hidden");
   $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.section === section));
-  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", tasks: "內部任務" })[section];
+  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務" })[section];
 }
 
 function tripStatusOptions(trip) {
@@ -675,6 +696,39 @@ $("#task-board").addEventListener("change", async (event) => {
     });
     await loadData(); showToast("任務狀態已更新");
   } catch (error) { await loadData(); showToast(error.message, true); }
+});
+
+$("#scan-reminders-button").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const result = await api("/api/reminders/scan", { method: "POST" });
+    await loadData();
+    showSection("reminders");
+    showToast(`新增 ${result.created_count} 筆提醒；${result.existing_count} 筆已存在`);
+  } catch (error) {
+    showToast(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("#reminder-board").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-reminder-status]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    await api(`/api/reminders/${button.dataset.reminderStatus}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: button.dataset.targetStatus }),
+    });
+    await loadData();
+    showSection("reminders");
+    showToast(button.dataset.targetStatus === "acknowledged" ? "提醒已標記為處理完成" : "提醒已略過");
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message, true);
+  }
 });
 
 $("#trip-list").addEventListener("click", async (event) => {

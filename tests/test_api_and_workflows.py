@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -13,8 +13,10 @@ import dependencies
 from app import app
 from models.crm import QuoteStatus, TaskStatus, TravelRequestStatus, TripStatus
 from models.payment import OrderStatus, PaymentStatus
+from models.reminder import ReminderStatus
 from services.payment_provider import get_payment_provider
 from services.quote_pdf import build_quote_proposal_pdf
+from services.reminder_rules import build_operational_reminder
 from services.ai_planning_graph import run_planning_graph
 from services.planning_provider import (
     GeneratedItineraryItem,
@@ -32,6 +34,7 @@ from services.workflow import (
     ensure_travel_request_transition,
     ensure_trip_transition,
     ensure_quote_transition,
+    ensure_reminder_transition,
 )
 
 
@@ -56,6 +59,8 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("訂單與付款", response.text)
         self.assertIn("/api/orders/", script.text)
         self.assertIn("Idempotency-Key", script.text)
+        self.assertIn("營運提醒", response.text)
+        self.assertIn("/api/reminders/scan", script.text)
         self.assertEqual(200, script.status_code)
 
     def test_crm_routes_are_exposed(self):
@@ -84,6 +89,9 @@ class ApiContractTests(unittest.TestCase):
             ("/api/ai-plans/{run_id}", "get"),
             ("/api/ai-plans/{run_id}/review", "post"),
             ("/api/ai/providers/status", "get"),
+            ("/api/reminders", "get"),
+            ("/api/reminders/scan", "post"),
+            ("/api/reminders/{reminder_id}", "patch"),
         }
 
         for path, method in expected:
@@ -144,6 +152,38 @@ class WorkflowTests(unittest.TestCase):
         ensure_payment_transition("processing", PaymentStatus.FAILED)
         with self.assertRaises(InvalidTransition):
             ensure_payment_transition("failed", PaymentStatus.SUCCEEDED)
+
+    def test_reminder_review_is_terminal(self):
+        ensure_reminder_transition("scheduled", ReminderStatus.ACKNOWLEDGED)
+        ensure_reminder_transition("scheduled", ReminderStatus.DISMISSED)
+        with self.assertRaises(InvalidTransition):
+            ensure_reminder_transition("acknowledged", ReminderStatus.DISMISSED)
+
+
+class ReminderRuleTests(unittest.TestCase):
+    def setUp(self):
+        self.now = datetime(2026, 9, 5, 12, 0, 0)
+
+    def test_overdue_task_becomes_urgent_internal_reminder(self):
+        reminder = build_operational_reminder({
+            "signal_type": "task_due", "source_id": 7, "member_id": 3,
+            "title": "確認機票", "due_at": self.now - timedelta(hours=2),
+        }, self.now)
+
+        self.assertEqual("urgent", reminder["payload"]["severity"])
+        self.assertEqual("逾期：確認機票", reminder["title"])
+        self.assertEqual("task_due:7:2026-09-05T10:00:00", reminder["dedup_key"])
+
+    def test_pending_payment_requires_human_follow_up(self):
+        reminder = build_operational_reminder({
+            "signal_type": "payment_follow_up", "source_id": 9, "member_id": 3,
+            "order_number": "ORD-009", "total": Decimal("52000"), "currency": "TWD",
+            "created_at": self.now - timedelta(hours=25),
+        }, self.now)
+
+        self.assertEqual("payment_follow_up", reminder["reminder_type"])
+        self.assertIn("再決定是否聯絡旅客", reminder["payload"]["recommended_action"])
+        self.assertEqual("payment_follow_up:9:2026-09-04", reminder["dedup_key"])
 
 
 class PaymentProviderTests(unittest.TestCase):

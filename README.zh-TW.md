@@ -23,6 +23,7 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 可選用 Gemini 3.8 Flash，透過 Pydantic Structured Output 與隱私 Allowlist
   控制輸出及傳送欄位；預設仍可使用本機規劃器
 - 內部任務指派與狀態管理
+- 營運提醒中心：偵測即將到期任務、待付款訂單與即將出發行程，並支援防重複與人工處理
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
@@ -80,6 +81,9 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | AI 規劃歷史 | `GET` | `/api/travel-requests/{request_id}/ai-plans` |
 | AI 規劃結果 | `GET` | `/api/ai-plans/{run_id}` |
 | 核准或退回 AI 草稿 | `POST` | `/api/ai-plans/{run_id}/review` |
+| 營運提醒列表 | `GET` | `/api/reminders` |
+| 掃描目前營運風險 | `POST` | `/api/reminders/scan` |
+| 將提醒標記為已處理或略過 | `PATCH` | `/api/reminders/{reminder_id}` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -111,6 +115,11 @@ new → qualified → planning → proposal_ready → client_review
 `X-Webhook-Signature` 驗證簽章，依 Provider Event ID 防止重複處理，並忽略
 付款成功後才抵達的過期失敗事件。未來可替換成真實 Provider，同時維持既有的
 訂單與付款 API Contract。
+
+營運提醒掃描會把可信任的 CRM 狀態轉成內部待辦：24 小時內到期的任務、建立
+超過 24 小時仍待付款的訂單，以及 14 天內出發且已核准或預訂的旅程。每筆提醒
+都有唯一 Deduplication Key，重複掃描不會重複建立。系統不會自動聯絡旅客；
+必須由 `admin` 或 `advisor` 人工選擇「已處理」或「略過」，並將結果寫入 Audit Trail。
 
 ## AI 旅遊規劃流程
 
@@ -198,12 +207,13 @@ python -m unittest discover -v tests
 
 目前測試涵蓋 REST Route Contract、Health／OpenAPI、密碼雜湊、JWT Round Trip、
 前端驗證 Endpoint、Payment Provider、PDF 產生、Schema Invariant，以及合法與
-不合法的 Workflow Transition。
+不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
+API 暴露與人工審核的終止狀態。
 
-目前共通過 **28 項自動測試**。
+目前共通過 **32 項自動測試**。
 
 ## 下一階段
 
 1. AI 規劃 Regression Fixtures 與 Provider Evaluation
-2. Reminder Worker 與 Integration Retry Processing
+2. 排程式提醒執行與 Integration Retry Processing
 3. 正式 Payment Provider Adapter 與 Secret Management

@@ -24,6 +24,8 @@ contracts and operational data before introducing model-driven automation.
 - Optional Gemini 3.8 Flash provider with Pydantic structured output and a
   privacy allowlist; local planning remains the default
 - Internal task assignment and lifecycle management
+- Internal operations reminder center for due tasks, pending payments, and
+  upcoming departures, with deduplication and human acknowledgement
 - Audit logs for CRM mutations
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
@@ -84,6 +86,9 @@ an authenticated admin.
 | Request AI plan history | `GET` | `/api/travel-requests/{request_id}/ai-plans` |
 | AI plan | `GET` | `/api/ai-plans/{run_id}` |
 | Approve or reject AI plan | `POST` | `/api/ai-plans/{run_id}/review` |
+| Operations reminders | `GET` | `/api/reminders` |
+| Scan current operational risks | `POST` | `/api/reminders/scan` |
+| Acknowledge or dismiss reminder | `PATCH` | `/api/reminders/{reminder_id}` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -117,6 +122,13 @@ for an order at a time; a failed attempt can be retried with a new key.
 Its webhook uses an HMAC-SHA256 `X-Webhook-Signature`, stores provider events by
 event ID, and ignores late failure events after payment success. A real provider
 can replace the adapter while preserving the order and payment API contracts.
+
+The operations reminder scan turns trusted CRM state into internal action items:
+tasks due within 24 hours, orders still awaiting payment after 24 hours, and
+approved or booked trips departing within 14 days. A unique deduplication key
+prevents repeated scans from creating duplicate reminders. Nothing contacts a
+traveler automatically; an `admin` or `advisor` must acknowledge or dismiss each
+item, and that decision is written to the audit trail.
 
 ## AI planning workflow
 
@@ -216,10 +228,13 @@ python -m unittest discover -v tests
 The current suite verifies REST route contracts, health/OpenAPI exposure,
 password hashing, JWT round trips, frontend authentication endpoints, payment
 provider behavior, PDF generation, schema invariants, and valid or invalid
-workflow transitions.
+workflow transitions. The reminder tests also verify rule output, deduplication
+schema, API exposure, and terminal human-review states.
+
+The current suite passes **32 automated tests**.
 
 ## Next milestone
 
 1. AI planning regression fixtures and provider evaluation
-2. Reminder workers and integration retry processing
+2. Scheduled reminder execution and integration retry processing
 3. Production payment-provider adapter and secret management

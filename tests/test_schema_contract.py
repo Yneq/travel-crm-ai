@@ -55,6 +55,12 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("reviewed_by", self.migration)
         self.assertIn("applied_trip_id", self.migration)
 
+    def test_operational_reminders_are_deduplicated_and_reviewable(self):
+        self.assertIn("uk_reminders_dedup", self.migration)
+        self.assertIn("reminder_type", self.migration)
+        self.assertIn("reviewed_by", self.migration)
+        self.assertIn("reviewed_at", self.migration)
+
 
 if __name__ == "__main__":
     unittest.main()

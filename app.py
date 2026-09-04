@@ -5,7 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from controllers import ai_controller, crm_controller, payment_controller, trip_controller, user_controller
+from controllers import (
+    ai_controller,
+    crm_controller,
+    payment_controller,
+    reminder_controller,
+    trip_controller,
+    user_controller,
+)
 
 
 app = FastAPI(
@@ -54,3 +61,4 @@ app.include_router(crm_controller.router)
 app.include_router(trip_controller.router)
 app.include_router(payment_controller.router)
 app.include_router(ai_controller.router)
+app.include_router(reminder_controller.router)

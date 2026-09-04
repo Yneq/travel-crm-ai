@@ -1,5 +1,6 @@
 from models.crm import QuoteStatus, TaskStatus, TravelRequestStatus, TripStatus
 from models.payment import OrderStatus, PaymentStatus
+from models.reminder import ReminderStatus
 
 
 TRAVEL_REQUEST_TRANSITIONS = {
@@ -64,6 +65,12 @@ PAYMENT_TRANSITIONS = {
     PaymentStatus.REFUNDED: set(),
 }
 
+REMINDER_TRANSITIONS = {
+    ReminderStatus.SCHEDULED: {ReminderStatus.ACKNOWLEDGED, ReminderStatus.DISMISSED},
+    ReminderStatus.ACKNOWLEDGED: set(),
+    ReminderStatus.DISMISSED: set(),
+}
+
 
 class InvalidTransition(ValueError):
     pass
@@ -115,3 +122,11 @@ def ensure_payment_transition(current: str, target: PaymentStatus) -> None:
         return
     if target not in PAYMENT_TRANSITIONS[current_status]:
         raise InvalidTransition(f"Cannot change payment from {current_status} to {target}")
+
+
+def ensure_reminder_transition(current: str, target: ReminderStatus) -> None:
+    current_status = ReminderStatus(current)
+    if target == current_status:
+        return
+    if target not in REMINDER_TRANSITIONS[current_status]:
+        raise InvalidTransition(f"Cannot change reminder from {current_status} to {target}")
