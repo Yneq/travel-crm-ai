@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from models.order import OrderRequest, OrderDetail, ErrorResponse, Trip, Attraction, Contact
 from dependencies import get_db, get_current_user
-import time
 import datetime
+import os
+import time
+
 import requests
 
 router = APIRouter()
@@ -70,14 +72,16 @@ async def create_order(order_request: OrderRequest, current_user: dict = Depends
 		db.commit()
 
 		pay_by_prime_url = "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
+		partner_key = os.environ["TAPPAY_PARTNER_KEY"]
+		merchant_id = os.environ["TAPPAY_MERCHANT_ID"]
 		headers = {
             "Content-Type": "application/json",
-            "x-api-key": "partner_5S6s0EozVToOKwHvzqMJjMXU0IJ05IS7J5DMikxlYJbBmx5poM9jBS1a"
+            "x-api-key": partner_key
         }
 		payment_payload = {
             "prime": prime,
-            "partner_key": "partner_5S6s0EozVToOKwHvzqMJjMXU0IJ05IS7J5DMikxlYJbBmx5poM9jBS1a",
-            "merchant_id": "yneq_CTBC",
+            "partner_key": partner_key,
+            "merchant_id": merchant_id,
             "details": "TapPay Test",
             "amount": price,
             "cardholder": {
@@ -167,5 +171,4 @@ async def get_order(orderNumber: str, current_user: dict = Depends(get_current_u
 	finally:
 		cursor.close()
 		db.close()
-
 

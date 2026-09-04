@@ -1,15 +1,17 @@
 import json
-import mysql.connector
+import os
 import re
+
+import mysql.connector
 
 with open('data/taipei-attractions.json', 'r', encoding='utf-8') as att:
     data = json.load(att)
 
 db = mysql.connector.connect(
-    user = 'root',
-    host = 'localhost',
-    password = '244466666',
-    database = 'tdt'
+    user=os.getenv('DB_USER', 'root'),
+    host=os.getenv('RDS_HOST', 'localhost'),
+    password=os.getenv('RDS_PASSWORD'),
+    database=os.getenv('DB_NAME', 'tdt')
 )
 cursor = db.cursor()
 
@@ -41,5 +43,4 @@ for item in data['result']['results']:
 db.commit()
 cursor.close()
 db.close()
-
 

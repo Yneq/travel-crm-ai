@@ -1,83 +1,194 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
-from models.user import User, UserResponse, UserCheckin
-from dependencies import get_db, get_current_user, create_access_token
 
-router = APIRouter()
+from dependencies import (
+    create_access_token,
+    get_current_user,
+    get_db,
+    hash_password,
+    require_roles,
+    verify_password,
+)
+from models.user import LoginRequest, StaffUserCreate, TokenResponse, UserCreate, UserResponse
 
 
-@router.post("/api/user")
-async def create_user(user: User):
-	try:
-		db = get_db()
-		cursor = db.cursor()
-		cursor.execute("SELECT * FROM users WHERE email=%s", (user.email,))
-		existing_user = cursor.fetchone()
-		if existing_user:
-			return JSONResponse(status_code=400, content = {
-				"error": True,
-				"message": "註冊失敗，重複的 Email 或其他原因"
-			})
-		cursor.execute("INSERT INTO users(name, email, password) VALUES (%s, %s, %s)", (user.name, user.email, user.password))
-		db.commit()
-		cursor.close()
-		db.close()
-		return {"ok": True}
-	except Exception as e:
-		print(f"Database error: {str(e)}") 
-		return JSONResponse(status_code=500, content={
-			"error": True,
-			"message": "伺服器內部錯誤"
-		})
-	
-@router.get("/api/user/auth", response_model=UserResponse)
-async def read_user(current_user: dict = Depends(get_current_user)):
-	try:
-		if not current_user:
-			raise HTTPException(status_code=401, detail="Unauthorized")
+router = APIRouter(tags=["authentication"])
 
-		db = get_db()
-		cursor = db.cursor()
-		cursor.execute("SELECT id, name, email FROM users WHERE id=%s", (current_user["id"], ))
-		user = cursor.fetchone()
-		cursor.close()
-		db.close()
 
-		if not user:
-			raise HTTPException(status_code=404, detail="User not found")
-		return UserResponse(id=user[0], name=user[1], email=user[2])
-	except Exception as e:
-		print(f"Database error: {str(e)}")
-		raise HTTPException(status_code=500, detail="伺服器內部錯誤")
+@router.post(
+    "/api/auth/register",
+    status_code=status.HTTP_201_CREATED,
+    response_model=UserResponse,
+)
+def register_user(user: UserCreate):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT COUNT(*) AS count FROM staff_users")
+        if cursor.fetchone()["count"] > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Bootstrap registration is closed; ask an admin to create the account",
+            )
 
-@router.put("/api/user/auth")
-async def check_user(user: UserCheckin):
-	try:
-		db = get_db()
-		cursor = db.cursor(dictionary=True)
-		cursor.execute("SELECT * FROM users WHERE email=%s AND password=%s", (user.email, user.password))
-		user_data = cursor.fetchone()
-		cursor.close()
-		db.close()
-		
-		if not user_data:
-			return JSONResponse(status_code=400,content={
-				"error": True,
-				"message": "登入失敗，帳號或密碼錯誤或其他原因"
-			})
-		access_token = await create_access_token(data={
-			"id": user_data["id"],
-			"name": user_data["name"],
-			"email": user_data["email"],
-		})
-		return {"token": access_token}
-		
-	except HTTPException as http_exc:
-		print(f"HTTP Exception: {str(http_exc)}") 
-		return JSONResponse(status_code=http_exc.status_code, content={"error": True, "message": http_exc.detail})
-	except Exception as e:
-		print(f"General Exception: {str(e)}")
-		return JSONResponse(status_code=500, content={
-			"error": True,
-			"message": f"伺服器內部錯誤: {str(e)}"
-		})
+        password_hash = hash_password(user.password)
+        cursor.execute("SELECT id FROM roles WHERE code = 'admin'")
+        role = cursor.fetchone()
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Default admin role is not configured",
+            )
+        cursor.execute(
+            """
+            INSERT INTO staff_users(role_id, name, email, password_hash)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (role["id"], user.name, user.email, password_hash),
+        )
+        db.commit()
+        return UserResponse(
+            id=cursor.lastrowid,
+            name=user.name,
+            email=user.email,
+            role="admin",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to register user",
+        ) from exc
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post(
+    "/api/staff-users",
+    status_code=status.HTTP_201_CREATED,
+    response_model=UserResponse,
+)
+def create_staff_user(
+    staff: StaffUserCreate,
+    current_user: dict = Depends(require_roles("admin")),
+):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM staff_users WHERE email = %s", (staff.email,))
+        if cursor.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email is already registered",
+            )
+        cursor.execute("SELECT id FROM roles WHERE code = %s", (staff.role,))
+        role = cursor.fetchone()
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unknown role",
+            )
+        cursor.execute(
+            """
+            INSERT INTO staff_users(role_id, name, email, password_hash)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (role["id"], staff.name, staff.email, hash_password(staff.password)),
+        )
+        staff_id = cursor.lastrowid
+        cursor.execute(
+            """
+            INSERT INTO audit_logs(
+                actor_id, entity_type, entity_id, action, after_data
+            ) VALUES (%s, 'staff_user', %s, 'created', JSON_OBJECT('email', %s, 'role', %s))
+            """,
+            (current_user["id"], str(staff_id), staff.email, staff.role),
+        )
+        db.commit()
+        return UserResponse(
+            id=staff_id,
+            name=staff.name,
+            email=staff.email,
+            role=staff.role,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to create staff user",
+        ) from exc
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post("/api/auth/login", response_model=TokenResponse)
+def login(request: LoginRequest):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT su.id, su.name, su.email, su.password_hash, su.is_active,
+                   r.code AS role
+            FROM staff_users su
+            JOIN roles r ON r.id = su.role_id
+            WHERE su.email = %s
+            """,
+            (request.email,),
+        )
+        user = cursor.fetchone()
+
+        if (
+            user is None
+            or not user["is_active"]
+            or not verify_password(request.password, user["password_hash"])
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        token = create_access_token(
+            {
+                "sub": str(user["id"]),
+                "id": user["id"],
+                "email": user["email"],
+                "role": user["role"],
+            }
+        )
+        return TokenResponse(access_token=token)
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/api/users/me", response_model=UserResponse)
+def read_current_user(current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT su.id, su.name, su.email, r.code
+            FROM staff_users su
+            JOIN roles r ON r.id = su.role_id
+            WHERE su.id = %s AND su.is_active = TRUE
+            """,
+            (current_user["id"],),
+        )
+        user = cursor.fetchone()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return UserResponse(id=user[0], name=user[1], email=user[2], role=user[3])
+    finally:
+        cursor.close()
+        db.close()

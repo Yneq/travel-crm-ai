@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
       return;
     }
   
-    fetch('/api/user/auth', {
+    fetch('/api/users/me', {
       method: 'GET',
       headers: {'Authorization': `Bearer ${token}`}
     })
@@ -257,8 +257,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const email = loginemailInput.value;
         const password = loginpasswordInput.value;
 
-        fetch('/api/user/auth', {
-          method: 'PUT',
+        fetch('/api/auth/login', {
+          method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             email: email,
@@ -280,8 +280,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
               failMessage.style.display = 'none';
             }, 2000);
             console.log(data.message);
-          } else if (data.token) {
-            localStorage.setItem('token', data.token); // 保存 token 到 localStorage
+          } else if (data.access_token) {
+            localStorage.setItem('token', data.access_token); // 保存 token 到 localStorage
             successLoginMessage.style.display = 'block';
             setTimeout(() => {
               successLoginMessage.style.display = 'none';
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
      //   console.log({name, email, password});  // for debug
 
-    fetch('/api/user', {
+    fetch('/api/auth/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -951,4 +951,3 @@ document.addEventListener('DOMContentLoaded', async() => {
   showSlide(0);
 
 });
-

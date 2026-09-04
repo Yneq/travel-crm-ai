@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="VoyageOps AI travel CRM dashboard" />
+    <title>VoyageOps AI · Travel Operations</title>
+    <link rel="icon" href="/admin-assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/admin-assets/admin.css" />
+    <script src="/admin-assets/admin.js?v=5" defer></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main id="login-view" class="login-shell">
+      <section class="login-story">
+        <div class="brand-mark">VO</div>
+        <p class="eyebrow">AI-NATIVE TRAVEL OPERATIONS</p>
+        <h1>每一段旅程，<br />都從清楚的脈絡開始。</h1>
+        <p class="login-copy">集中會員偏好、旅遊需求與團隊任務，讓顧問把時間留給真正需要判斷與品味的工作。</p>
+        <div class="story-metrics">
+          <div><strong>360°</strong><span>會員脈絡</span></div>
+          <div><strong>1</strong><span>營運工作區</span></div>
+          <div><strong>Human</strong><span>最終決策</span></div>
+        </div>
+      </section>
+
+      <section class="login-card">
+        <div>
+          <p class="eyebrow">WELCOME BACK</p>
+          <h2>登入 VoyageOps</h2>
+          <p class="muted">使用內部員工帳號進入管理介面。</p>
+        </div>
+        <form id="login-form" class="stack-form">
+          <label>電子郵件<input id="login-email" type="email" value="admin.voyageops@example.com" required /></label>
+          <label>密碼<input id="login-password" type="password" autocomplete="current-password" required /></label>
+          <p id="login-error" class="form-error" role="alert"></p>
+          <button class="button primary" type="submit">登入工作區 <span>→</span></button>
+        </form>
+        <p class="login-note">本機開發環境 · 資料儲存在 Docker MySQL</p>
+      </section>
+    </main>
+
+    <div id="app-view" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand-lockup"><span class="brand-mark small">VO</span><div><strong>VoyageOps</strong><small>Travel Intelligence</small></div></div>
+        <nav aria-label="主要導覽">
+          <button class="nav-item active" data-section="overview"><span>◫</span>總覽</button>
+          <button class="nav-item" data-section="members"><span>◎</span>會員</button>
+          <button class="nav-item" data-section="requests"><span>◇</span>需求 Pipeline</button>
+          <button class="nav-item" data-section="ai-planning"><span>✦</span>AI 規劃</button>
+          <button class="nav-item" data-section="itineraries"><span>◈</span>行程與報價</button>
+          <button class="nav-item" data-section="orders"><span>▤</span>訂單與付款</button>
+          <button class="nav-item" data-section="tasks"><span>✓</span>任務</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-chip"><span id="user-initial">V</span><div><strong id="user-name">—</strong><small id="user-role">—</small></div></div>
+          <button id="logout-button" class="text-button">登出</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div><p id="today-label" class="eyebrow"></p><h1 id="page-title">營運總覽</h1></div>
+          <div class="topbar-actions"><span id="sync-state" class="sync-state">● 已同步</span><button class="button ghost" data-dialog="member-dialog">＋ 新增會員</button></div>
+        </header>
+
+        <section id="section-overview" class="workspace-section">
+          <div class="stat-grid">
+            <article class="stat-card"><span class="stat-icon violet">◎</span><p>有效會員</p><strong id="stat-members">0</strong><small>集中管理旅客偏好</small></article>
+            <article class="stat-card"><span class="stat-icon gold">◇</span><p>進行中需求</p><strong id="stat-requests">0</strong><small>從訪談到完成訂購</small></article>
+            <article class="stat-card"><span class="stat-icon teal">✓</span><p>待辦任務</p><strong id="stat-tasks">0</strong><small>需要團隊跟進</small></article>
+            <article class="stat-card"><span class="stat-icon rose">!</span><p>高優先任務</p><strong id="stat-urgent">0</strong><small>優先處理營運風險</small></article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="panel wide">
+              <div class="panel-heading"><div><p class="eyebrow">REQUEST FLOW</p><h2>近期旅遊需求</h2></div><button class="text-button section-link" data-target="requests">查看全部</button></div>
+              <div id="recent-requests" class="request-list empty-state">尚無旅遊需求</div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">TODAY</p><h2>優先任務</h2></div><button class="text-button section-link" data-target="tasks">任務看板</button></div>
+              <div id="priority-tasks" class="task-list empty-state">尚無待辦任務</div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-members" class="workspace-section hidden">
+          <div class="section-toolbar"><div class="search-box">⌕<input id="member-search" placeholder="搜尋姓名、Email 或電話" /></div><button class="button primary" data-dialog="member-dialog">＋ 新增會員</button></div>
+          <article class="panel table-panel">
+            <table><thead><tr><th>會員</th><th>等級</th><th>聯絡方式</th><th>來源</th><th>負責顧問</th><th>更新時間</th></tr></thead><tbody id="member-table"></tbody></table>
+            <div id="member-empty" class="empty-state hidden">找不到符合條件的會員。</div>
+          </article>
+        </section>
+
+        <section id="section-requests" class="workspace-section hidden">
+          <div class="section-toolbar"><p class="muted">依狀態追蹤每一筆需求，狀態變更會受到後端 workflow 規則保護。</p><button class="button primary" data-dialog="request-dialog">＋ 建立需求</button></div>
+          <div id="pipeline-board" class="pipeline-board"></div>
+        </section>
+
+        <section id="section-tasks" class="workspace-section hidden">
+          <div class="section-toolbar"><div class="filter-pills"><button class="filter-pill active" data-task-filter="active">進行中</button><button class="filter-pill" data-task-filter="all">全部</button><button class="filter-pill" data-task-filter="completed">已完成</button></div><button class="button primary" data-dialog="task-dialog">＋ 新增任務</button></div>
+          <div id="task-board" class="task-board"></div>
+        </section>
+
+        <section id="section-ai-planning" class="workspace-section hidden">
+          <div class="section-toolbar"><p class="muted">LangGraph 會整理需求、找出缺漏並產生草稿；只有人工核准後才會建立可編輯行程。</p><button class="button primary" data-dialog="ai-plan-dialog">✦ 產生 AI 草稿</button></div>
+          <div id="ai-provider-status" class="provider-status"></div>
+          <div id="ai-plan-board" class="ai-plan-board"></div>
+        </section>
+
+        <section id="section-orders" class="workspace-section hidden">
+          <div class="section-toolbar"><p class="muted">付款請求與 webhook 都有 idempotency 保護；重送相同請求不會建立重複交易。</p></div>
+          <div id="order-board" class="order-board"></div>
+        </section>
+
+        <section id="section-itineraries" class="workspace-section hidden">
+          <div class="section-toolbar"><p class="muted">行程項目是可編輯草稿；每次建立報價都會保存獨立快照與版本。</p><button class="button primary" data-dialog="trip-dialog">＋ 建立行程</button></div>
+          <div class="trip-studio">
+            <aside class="panel trip-index"><div class="panel-heading"><div><p class="eyebrow">ITINERARIES</p><h2>行程列表</h2></div></div><div id="trip-list" class="trip-list"></div></aside>
+            <section id="trip-detail" class="panel trip-detail"><div class="empty-state">選擇一筆行程開始編輯。</div></section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="member-dialog">
+      <form id="member-form" class="dialog-card">
+        <header><div><p class="eyebrow">NEW MEMBER</p><h2>建立會員檔案</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">姓名<input name="name" required maxlength="100" /></label>
+          <label>Email<input name="email" type="email" /></label>
+          <label>電話<input name="phone" /></label>
+          <label>會員等級<select name="tier"><option value="standard">Standard</option><option value="premium">Premium</option><option value="vip">VIP</option></select></label>
+          <label>來源<input name="source" placeholder="Referral / Website" /></label>
+          <label class="full">旅遊偏好<input name="travel_styles" placeholder="luxury, family, culture" /></label>
+          <label class="full">備註<textarea name="notes" rows="3"></textarea></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立會員</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="request-dialog">
+      <form id="request-form" class="dialog-card">
+        <header><div><p class="eyebrow">NEW REQUEST</p><h2>建立旅遊需求</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">會員<select name="member_id" id="request-member" required></select></label>
+          <label class="full">需求名稱<input name="title" required placeholder="東京五天高端親子行程" /></label>
+          <label class="full">目的地<input name="destination" required /></label>
+          <label>開始日期<input name="start_date" type="date" /></label>
+          <label>結束日期<input name="end_date" type="date" /></label>
+          <label>人數<input name="party_size" type="number" min="1" value="1" required /></label>
+          <label>預算（TWD）<input name="budget_amount" type="number" min="0" /></label>
+          <label class="full">需求備註<textarea name="requirements" rows="3" placeholder="住宿、飲食、交通與特殊需求"></textarea></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立需求</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="task-dialog">
+      <form id="task-form" class="dialog-card">
+        <header><div><p class="eyebrow">NEW TASK</p><h2>新增內部任務</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">任務名稱<input name="title" required /></label>
+          <label>關聯會員<select name="member_id" id="task-member"><option value="">不指定</option></select></label>
+          <label>關聯需求<select name="request_id" id="task-request"><option value="">不指定</option></select></label>
+          <label>優先級<select name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></label>
+          <label>到期時間<input name="due_at" type="datetime-local" /></label>
+          <label class="full">說明<textarea name="description" rows="3"></textarea></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立任務</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="trip-dialog">
+      <form id="trip-form" class="dialog-card">
+        <header><div><p class="eyebrow">NEW ITINERARY</p><h2>建立行程草稿</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">旅遊需求<select name="request_id" id="trip-request" required></select></label>
+          <label class="full">行程名稱<input name="name" required /></label>
+          <label>開始日期<input name="start_date" type="date" /></label>
+          <label>結束日期<input name="end_date" type="date" /></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立行程</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="ai-plan-dialog">
+      <form id="ai-plan-form" class="dialog-card">
+        <header><div><p class="eyebrow">HUMAN-IN-THE-LOOP</p><h2>產生行程規劃草稿</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">旅遊需求<select name="request_id" id="ai-plan-request" required></select></label>
+          <label class="full">顧問補充<textarea name="planning_notes" rows="4" placeholder="例如：節奏放慢、避免太早出發、安排親子友善活動"></textarea></label>
+        </div>
+        <p id="ai-plan-provider-notice" class="muted dialog-notice">正在確認 AI provider 狀態。</p>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">產生待審核草稿</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="item-dialog">
+      <form id="item-form" class="dialog-card">
+        <input name="item_id" type="hidden" />
+        <header><div><p class="eyebrow">ITINERARY ITEM</p><h2 id="item-dialog-title">加入行程項目</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label>類型<select name="item_type"><option value="hotel">飯店</option><option value="flight">航班</option><option value="transfer">接送</option><option value="activity">活動</option><option value="dining">餐飲</option><option value="other">其他</option></select></label>
+          <label>排序<input name="sort_order" type="number" min="0" value="0" /></label>
+          <label class="full">項目名稱<input name="title" required /></label>
+          <label>供應商<input name="supplier_name" /></label>
+          <label>地點<input name="location" /></label>
+          <label>單價（TWD）<input name="unit_price" type="number" min="0" required /></label>
+          <label>數量<input name="quantity" type="number" min="1" value="1" required /></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button id="item-submit-button" class="button primary" type="submit">加入行程</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="quote-dialog">
+      <form id="quote-form" class="dialog-card">
+        <header><div><p class="eyebrow">QUOTE SNAPSHOT</p><h2>建立新版報價</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label>稅率（%）<input name="tax_rate" type="number" min="0" max="100" step="0.1" value="5" /></label>
+          <label>有效期限<input name="expires_at" type="datetime-local" /></label>
+          <label class="full">版本備註<textarea name="notes" rows="3" placeholder="說明本版調整內容"></textarea></label>
+        </div>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立報價快照</button></footer>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status"></div>
+  </body>
+</html>

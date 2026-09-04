@@ -1,0 +1,63 @@
+services:
+  api:
+    build: .
+    command: ["sh", "-c", "python scripts/migrate.py && exec uvicorn app:app --reload --host 0.0.0.0 --port 8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      SECRET_KEY: local-development-secret-change-me
+      ALGORITHM: HS256
+      DB_USER: travel_crm
+      RDS_HOST: mysql
+      RDS_PASSWORD: travel_crm
+      DB_NAME: travel_crm
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8080
+      ENABLE_MOCK_PAYMENT: "true"
+      MOCKPAY_WEBHOOK_SECRET: local-mockpay-secret
+      AI_PLANNING_PROVIDER: ${AI_PLANNING_PROVIDER:-local}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemini-3.5-flash-lite}
+      AI_PROVIDER_TIMEOUT_MS: ${AI_PROVIDER_TIMEOUT_MS:-20000}
+      AI_PROVIDER_MAX_RETRIES: ${AI_PROVIDER_MAX_RETRIES:-2}
+      AI_PROVIDER_MAX_OUTPUT_TOKENS: ${AI_PROVIDER_MAX_OUTPUT_TOKENS:-8192}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: travel_crm
+      MYSQL_USER: travel_crm
+      MYSQL_PASSWORD: travel_crm
+      MYSQL_ROOT_PASSWORD: local-root-password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./migrations/001_initial_crm.sql:/docker-entrypoint-initdb.d/001_initial_crm.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-plocal-root-password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql_data:
