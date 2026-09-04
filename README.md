@@ -1,5 +1,7 @@
 # VoyageOps AI
 
+**English** | [繁體中文](README.zh-TW.md)
+
 VoyageOps AI is an API-first travel CRM and operations platform evolved from the
 Taipei Day Trip booking project. The first milestone focuses on reliable backend
 contracts and operational data before introducing model-driven automation.

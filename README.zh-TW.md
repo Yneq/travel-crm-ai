@@ -1,0 +1,209 @@
+# VoyageOps AI
+
+[English](README.md) | **繁體中文**
+
+VoyageOps AI 是一套 API-first 的高端旅遊 CRM 與營運管理平台，由原本的
+Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約與營運資料模型，
+再導入模型驅動的 AI 自動化。
+
+## 目前完成範圍
+
+- 使用 bcrypt 密碼雜湊與 JWT Bearer Token 的員工驗證
+- `admin`、`advisor`、`finance` 角色與權限模型
+- 會員資料、負責顧問與旅遊偏好管理
+- 旅遊需求建立與完整生命週期管理
+- 版本化行程與可計價的行程項目
+- 不可變報價快照與報價核准流程
+- 由報價快照產生可下載的繁體中文 PDF
+- 具 Idempotency 保護的訂單建立與付款嘗試
+- 具簽章驗證及防重放能力的付款 Webhook 與本機 MockPay Adapter
+- 明確的訂單／付款狀態機與 Audit Trail
+- LangGraph 旅遊規劃流程：需求摘要、缺漏偵測、草稿產生與 Guardrail
+- AI 草稿須經人工審核，核准後才能建立可編輯行程
+- 可選用 Gemini 3.8 Flash，透過 Pydantic Structured Output 與隱私 Allowlist
+  控制輸出及傳送欄位；預設仍可使用本機規劃器
+- 內部任務指派與狀態管理
+- CRM 寫入操作的 Audit Log
+- Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
+  第三方 Integration Events 的資料庫結構
+- 使用 Docker Compose 建立本機 MySQL 與 Redis 環境
+- `/docs` OpenAPI 文件
+- `/admin` 瀏覽器營運管理介面
+
+原始景點、訂購、付款與靜態前端程式仍保留在 repository，作為系統演進參考；
+新的 `app.py` 只提供 VoyageOps API 與管理介面。
+
+## REST API
+
+### 身分驗證
+
+| 操作 | Method | Endpoint |
+|---|---:|---|
+| 建立第一位管理員 | `POST` | `/api/auth/register` |
+| 登入並取得 Bearer Token | `POST` | `/api/auth/login` |
+| 取得目前登入員工 | `GET` | `/api/users/me` |
+| 建立員工帳號（限管理員） | `POST` | `/api/staff-users` |
+
+登入使用 `POST`，因為這個請求會提交帳號密碼並建立驗證結果。舊系統的 S3
+Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的物件。
+
+第一位管理員建立後，Bootstrap Registration 便會關閉。第一個帳號會取得
+`admin` 角色，後續員工帳號只能由已登入的管理員建立。
+
+### CRM 與營運流程
+
+| 資源 | Method | Endpoint |
+|---|---:|---|
+| 會員列表／建立會員 | `GET`, `POST` | `/api/members` |
+| 會員資料 | `GET`, `PATCH` | `/api/members/{member_id}` |
+| 旅遊需求列表／建立需求 | `GET`, `POST` | `/api/travel-requests` |
+| 旅遊需求 | `GET`, `PATCH` | `/api/travel-requests/{request_id}` |
+| 任務列表／建立任務 | `GET`, `POST` | `/api/tasks` |
+| 任務 | `PATCH` | `/api/tasks/{task_id}` |
+| 行程列表 | `GET` | `/api/trips` |
+| 行程 | `GET`, `PATCH` | `/api/trips/{trip_id}` |
+| 由需求建立行程 | `POST` | `/api/travel-requests/{request_id}/trips` |
+| 建立行程項目 | `POST` | `/api/trips/{trip_id}/items` |
+| 行程項目 | `PATCH`, `DELETE` | `/api/trip-items/{item_id}` |
+| 報價列表 | `GET` | `/api/quotes` |
+| 建立報價快照 | `POST` | `/api/trips/{trip_id}/quotes` |
+| 報價 | `GET`, `PATCH` | `/api/quotes/{quote_id}` |
+| 下載已核准報價 PDF | `GET` | `/api/quotes/{quote_id}/documents/proposal.pdf` |
+| 由已核准報價建立訂單 | `POST` | `/api/quotes/{quote_id}/orders` |
+| 訂單列表 | `GET` | `/api/orders` |
+| 訂單 | `GET` | `/api/orders/{order_id}` |
+| 發起付款 | `POST` | `/api/orders/{order_id}/payments` |
+| 付款紀錄 | `GET` | `/api/orders/{order_id}/payments` |
+| 模擬 MockPay 結果（限本機管理員） | `POST` | `/api/payments/{payment_id}/simulate` |
+| 付款 Webhook | `POST` | `/api/webhooks/payments/{provider}` |
+| 產生 AI 行程草稿 | `POST` | `/api/travel-requests/{request_id}/ai-plans` |
+| AI 規劃歷史 | `GET` | `/api/travel-requests/{request_id}/ai-plans` |
+| AI 規劃結果 | `GET` | `/api/ai-plans/{run_id}` |
+| 核准或退回 AI 草稿 | `POST` | `/api/ai-plans/{run_id}/review` |
+
+寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
+讀取 CRM 資料，但不能修改。
+
+## Workflow 規則
+
+旅遊需求使用明確的狀態機：
+
+```text
+new → qualified → planning → proposal_ready → client_review
+                                                ↓
+                                             approved → booked → completed
+```
+
+支援的階段可以轉換為 `cancelled`；例如 `new → booked` 這種不合法的跳轉會
+回傳 HTTP `409 Conflict`。任務同樣使用受控的 `open`、`in_progress`、
+`completed` 與 `cancelled` 狀態轉換。
+
+行程必須經過 `draft → review → confirmed`。報價使用
+`draft → pending_approval → approved/rejected`，且只有 `admin` 或 `finance`
+可以核准或退回。建立報價時，系統會將當下行程項目複製到 `quote_items`，
+因此後續編輯行程只會建立新版本，不會改寫歷史報價。
+
+建立訂單或付款時必須提供 `Idempotency-Key` Header。重送相同 Key 會取得原本
+的 Resource；不同 Key 也不能替同一報價建立第二張訂單。同一筆訂單一次只能有
+一個處理中的付款，付款失敗後可使用新的 Key 安全重試。
+
+`MockPay` 是本機整合 Adapter，不是真實金流。Webhook 使用 HMAC-SHA256
+`X-Webhook-Signature` 驗證簽章，依 Provider Event ID 防止重複處理，並忽略
+付款成功後才抵達的過期失敗事件。未來可替換成真實 Provider，同時維持既有的
+訂單與付款 API Contract。
+
+## AI 旅遊規劃流程
+
+LangGraph 規劃流程包含四個明確節點：
+
+```text
+prepare_privacy_safe_context → identify_missing_information
+→ generate_structured_plan → quality_guardrail
+```
+
+每次結果都會先儲存為 `awaiting_review`。人工核准後，系統才會在同一筆資料庫
+Transaction 中建立一般行程並把建議項目寫入 `trip_items`；退回則不會修改 CRM
+或行程資料。兩種操作都不會自動建立報價、訂單或付款。
+
+預設的 `local-planner` 是 Deterministic，不會呼叫外部 LLM，也不會宣稱價格、
+選擇供應商或檢查庫存。它提供可安全測試的本機流程與 Provider Boundary，未來
+替換模型時不必改動審核 API。送入 AI 的 Context 會排除會員 Email 與電話，
+只保留規劃行程所需資料。
+
+### 啟用 Gemini 免費額度 Provider
+
+在 Google AI Studio 建立 Gemini Developer API Key，然後把以下設定放入專案
+`.env`；請勿提交真實 Key：
+
+```dotenv
+AI_PLANNING_PROVIDER=gemini
+GEMINI_API_KEY=replace-with-your-key
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_FALLBACK_MODEL=gemini-3.5-flash-lite
+AI_PROVIDER_TIMEOUT_MS=20000
+AI_PROVIDER_MAX_RETRIES=2
+AI_PROVIDER_MAX_OUTPUT_TOKENS=8192
+```
+
+只重建 API Service 即可套用環境設定：
+
+```bash
+docker compose up -d --no-build --force-recreate api
+```
+
+Provider 每次嘗試只送出一個 Structured Output 請求。遇到暫時性的 `429` 或
+`5xx` 時，最多以 Exponential Backoff 重試兩次。Primary Model 是
+`gemini-3.8-flash`；若重試後仍失敗，或輸出無法通過結構驗證，則改用
+`gemini-3.5-flash-lite`，並記錄實際產生草稿的模型。
+
+隱私 Allowlist 只會傳送旅客姓名／等級／Locale、行程資訊與旅遊偏好，不會傳送
+Email 或電話。免費額度可能允許 Google 使用提交內容改善產品，因此測試時不可
+使用真實客戶資料，上線前也必須重新檢查資料處理條款。
+
+## 本機執行
+
+若要在容器外執行 API，先複製環境設定範例：
+
+```bash
+cp .env.example .env
+```
+
+啟動完整本機環境：
+
+```bash
+docker compose up --build
+```
+
+系統會建立 `travel_crm` MySQL Database、依序套用 SQL Migrations，並啟動
+Redis 與 FastAPI Service。如果 Docker Hub 暫時連線逾時，但本機已有 API Image，
+可以使用 `docker compose up -d --no-build`。
+
+Docker Compose 在開發環境使用 Uvicorn Reload Mode，Python 程式變更後會自動
+載入；Production Deployment 應關閉 `--reload`。
+
+- API：<http://localhost:8080>
+- Admin Dashboard：<http://localhost:8080/admin>
+- Swagger UI：<http://localhost:8080/docs>
+- Health Check：<http://localhost:8080/health>
+
+Migration Runner 會把每個檔案的 Checksum 寫入 `schema_migrations`，因此既有
+Volume 可直接取得新 Migration，不需要刪除本機資料。只有刻意重設所有資料時，
+才應移除專案 Volume。
+
+## 測試
+
+```bash
+python -m unittest discover -v tests
+```
+
+目前測試涵蓋 REST Route Contract、Health／OpenAPI、密碼雜湊、JWT Round Trip、
+前端驗證 Endpoint、Payment Provider、PDF 產生、Schema Invariant，以及合法與
+不合法的 Workflow Transition。
+
+目前共通過 **28 項自動測試**。
+
+## 下一階段
+
+1. AI 規劃 Regression Fixtures 與 Provider Evaluation
+2. Reminder Worker 與 Integration Retry Processing
+3. 正式 Payment Provider Adapter 與 Secret Management
