@@ -17,6 +17,12 @@ from models.reminder import ReminderStatus
 from services.payment_provider import get_payment_provider
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
+from services.followup_provider import (
+    LocalFollowUpProvider,
+    PlanningProviderError,
+    build_followup_prompt,
+    generate_followup_with_fallback,
+)
 from services.ai_planning_graph import run_planning_graph
 from services.planning_provider import (
     GeneratedItineraryItem,
@@ -92,6 +98,8 @@ class ApiContractTests(unittest.TestCase):
             ("/api/reminders", "get"),
             ("/api/reminders/scan", "post"),
             ("/api/reminders/{reminder_id}", "patch"),
+            ("/api/reminders/{reminder_id}/ai-draft", "post"),
+            ("/api/reminders/{reminder_id}/ai-draft/review", "post"),
         }
 
         for path, method in expected:
@@ -184,6 +192,47 @@ class ReminderRuleTests(unittest.TestCase):
         self.assertEqual("payment_follow_up", reminder["reminder_type"])
         self.assertIn("再決定是否聯絡旅客", reminder["payload"]["recommended_action"])
         self.assertEqual("payment_follow_up:9:2026-09-04", reminder["dedup_key"])
+
+
+class FollowUpCopilotTests(unittest.TestCase):
+    def setUp(self):
+        self.context = {
+            "member": {
+                "name": "Demo Traveler", "tier": "vip", "locale": "zh-TW",
+                "email": "private@example.com", "phone": "0900000000",
+            },
+            "reminder": {
+                "type": "payment_follow_up", "title": "待付款訂單：ORD-009",
+                "reason": "訂單建立超過 24 小時仍未完成付款",
+                "recommended_action": "由顧問確認付款狀態", "severity": "high",
+            },
+        }
+
+    def test_local_followup_is_a_human_reviewed_draft(self):
+        draft = LocalFollowUpProvider().generate_followup(self.context)
+
+        self.assertTrue(draft["requires_human_review"])
+        self.assertIn("付款狀態確認", draft["message_subject"])
+        self.assertIn("由顧問", draft["recommended_steps"][-1])
+
+    def test_followup_prompt_excludes_contact_details(self):
+        prompt = build_followup_prompt(self.context)
+
+        self.assertIn("Demo Traveler", prompt)
+        self.assertNotIn("private@example.com", prompt)
+        self.assertNotIn("0900000000", prompt)
+
+    @patch("services.followup_provider.get_followup_provider")
+    def test_external_failure_falls_back_to_safe_local_draft(self, provider_factory):
+        failing_provider = MagicMock()
+        failing_provider.generate_followup.side_effect = PlanningProviderError("temporary")
+        provider_factory.return_value = failing_provider
+
+        draft, provider_name = generate_followup_with_fallback(self.context, "gemini")
+
+        self.assertEqual("local-followup:fallback", provider_name)
+        self.assertTrue(draft["requires_human_review"])
+        self.assertIn("本機安全草稿", draft["provider_warning"])
 
 
 class PaymentProviderTests(unittest.TestCase):

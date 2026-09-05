@@ -1,8 +1,14 @@
 import json
-from datetime import datetime, timedelta
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from services.reminder_rules import build_operational_reminder
+from services.followup_provider import generate_followup_with_fallback
+
+
+class FollowUpConflict(ValueError):
+    pass
 
 
 def _json(value: Any) -> str:
@@ -14,6 +20,8 @@ def _decode(row: dict | None) -> dict | None:
         return None
     payload = row.get("payload")
     row["payload"] = json.loads(payload) if isinstance(payload, str) else (payload or {})
+    ai_draft = row.get("ai_draft")
+    row["ai_draft"] = json.loads(ai_draft) if isinstance(ai_draft, str) else ai_draft
     return row
 
 
@@ -160,6 +168,103 @@ def update_reminder_status(
         _audit(cursor, actor_id, reminder, f"status_changed_to_{target}")
         connection.commit()
         return reminder
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def _followup_context(cursor, reminder: dict) -> dict:
+    member = None
+    if reminder.get("member_id"):
+        cursor.execute(
+            "SELECT name, tier, locale FROM members WHERE id = %s AND deleted_at IS NULL",
+            (reminder["member_id"],),
+        )
+        member = cursor.fetchone()
+    payload = reminder.get("payload") or {}
+    return {
+        "member": member,
+        "reminder": {
+            "type": reminder["reminder_type"],
+            "title": reminder["title"],
+            "reason": payload.get("reason", "需要人工確認"),
+            "recommended_action": payload.get("recommended_action", "檢查 CRM 最新狀態"),
+            "severity": payload.get("severity", "normal"),
+        },
+    }
+
+
+def create_followup_draft(
+    connection, reminder_id: int, idempotency_key: str, actor_id: int
+) -> tuple[dict, bool]:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM reminders WHERE id = %s FOR UPDATE", (reminder_id,))
+        reminder = _decode(cursor.fetchone())
+        if reminder is None:
+            raise LookupError("Reminder not found")
+        if reminder.get("ai_draft"):
+            if reminder.get("ai_idempotency_key") != idempotency_key:
+                raise FollowUpConflict("This reminder already has an AI follow-up draft")
+            return reminder, False
+        if reminder["status"] != "scheduled":
+            raise FollowUpConflict("Only a scheduled reminder can create a follow-up draft")
+
+        provider_name = os.getenv(
+            "AI_FOLLOWUP_PROVIDER", os.getenv("AI_PLANNING_PROVIDER", "local")
+        )
+        context = _followup_context(cursor, reminder)
+        draft, actual_provider = generate_followup_with_fallback(context, provider_name)
+        draft["requires_human_review"] = True
+        generated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        cursor.execute(
+            """
+            UPDATE reminders
+            SET ai_idempotency_key = %s, ai_provider = %s, ai_draft = %s,
+                ai_draft_status = 'awaiting_review', ai_generated_at = %s
+            WHERE id = %s
+            """,
+            (idempotency_key, actual_provider, _json(draft), generated_at, reminder_id),
+        )
+        updated = get_reminder(connection, reminder_id, cursor=cursor)
+        _audit(cursor, actor_id, updated, "ai_followup_draft_created")
+        connection.commit()
+        return updated, True
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def review_followup_draft(
+    connection, reminder_id: int, decision: str, notes: str | None, actor_id: int
+) -> dict:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM reminders WHERE id = %s FOR UPDATE", (reminder_id,))
+        reminder = _decode(cursor.fetchone())
+        if reminder is None:
+            raise LookupError("Reminder not found")
+        if reminder.get("ai_draft_status") != "awaiting_review":
+            raise FollowUpConflict("AI follow-up draft is not awaiting review")
+        target = "approved" if decision == "approve" else "rejected"
+        reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        cursor.execute(
+            """
+            UPDATE reminders
+            SET ai_draft_status = %s, ai_reviewed_by = %s,
+                ai_reviewed_at = %s, ai_review_notes = %s
+            WHERE id = %s
+            """,
+            (target, actor_id, reviewed_at, notes, reminder_id),
+        )
+        updated = get_reminder(connection, reminder_id, cursor=cursor)
+        _audit(cursor, actor_id, updated, f"ai_followup_draft_{target}")
+        connection.commit()
+        return updated
     except Exception:
         connection.rollback()
         raise

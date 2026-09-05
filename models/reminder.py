@@ -17,6 +17,22 @@ class ReminderType(StrEnum):
     TRIP_COUNTDOWN = "trip_countdown"
 
 
+class FollowUpStatus(StrEnum):
+    AWAITING_REVIEW = "awaiting_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class FollowUpDecision(StrEnum):
+    APPROVE = "approve"
+    REJECT = "reject"
+
+
+class FollowUpReview(BaseModel):
+    decision: FollowUpDecision
+    notes: str | None = Field(default=None, max_length=2000)
+
+
 class ReminderUpdate(BaseModel):
     status: ReminderStatus
 
@@ -38,6 +54,13 @@ class ReminderResponse(BaseModel):
     last_error: str | None
     reviewed_by: int | None
     reviewed_at: datetime | None
+    ai_provider: str | None = None
+    ai_draft: dict | None = None
+    ai_draft_status: FollowUpStatus | None = None
+    ai_generated_at: datetime | None = None
+    ai_reviewed_by: int | None = None
+    ai_reviewed_at: datetime | None = None
+    ai_review_notes: str | None = None
     created_at: datetime
     updated_at: datetime
 

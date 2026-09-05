@@ -186,6 +186,12 @@ td strong { color: var(--ink); }
 .reminder-copy h3 { margin: 0 0 5px; font-size: 14px; }.reminder-copy p:not(.eyebrow) { margin: 0 0 6px; color: var(--muted); font-size: 11px; }.reminder-copy small { color: #89918e; font-size: 9px; }
 .reminder-actions { display: flex; justify-content: flex-end; gap: 7px; min-width: 145px; }.reminder-actions small { color: var(--muted); font-size: 9px; }
 .status-badge.acknowledged { background: #dceee6; color: #26705b; }.status-badge.dismissed { background: #eceeed; color: #737a77; }
+.ai-draft-button, .ai-followup { grid-column: 2 / -1; }
+.ai-followup { margin-top: 3px; border: 1px solid #ded9ef; border-radius: 13px; background: #faf9fe; overflow: hidden; }
+.ai-followup summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; color: #574695; font-size: 11px; font-weight: 700; cursor: pointer; }
+.ai-followup-body { display: grid; gap: 12px; padding: 2px 14px 14px; }.ai-followup-body > p { margin: 0; }.ai-followup-body strong { display: block; margin-bottom: 5px; font-size: 10px; }.ai-followup-body p, .ai-followup-body li { color: var(--muted); font-size: 10px; line-height: 1.65; }.ai-followup-body ol { margin: 5px 0 0; padding-left: 18px; }
+.message-draft { border-left: 3px solid #9a8ad1; border-radius: 8px; padding: 11px 12px; background: white; }.message-draft small { display: block; margin-bottom: 7px; color: #7a6caf; font-size: 9px; }.message-draft p { margin: 0; white-space: pre-line; }
+.ai-followup-body footer { display: flex; gap: 7px; padding-top: 3px; }
 
 dialog { width: min(620px, calc(100vw - 28px)); max-height: calc(100vh - 40px); border: 0; border-radius: 22px; padding: 0; background: transparent; box-shadow: var(--shadow); }
 dialog::backdrop { background: rgba(16,31,26,.52); backdrop-filter: blur(4px); }

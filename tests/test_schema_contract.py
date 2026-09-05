@@ -60,6 +60,9 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("reminder_type", self.migration)
         self.assertIn("reviewed_by", self.migration)
         self.assertIn("reviewed_at", self.migration)
+        self.assertIn("uk_reminders_ai_idempotency", self.migration)
+        self.assertIn("ai_draft_status", self.migration)
+        self.assertIn("ai_reviewed_by", self.migration)
 
 
 if __name__ == "__main__":

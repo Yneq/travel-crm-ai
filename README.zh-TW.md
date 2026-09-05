@@ -24,6 +24,7 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
   控制輸出及傳送欄位；預設仍可使用本機規劃器
 - 內部任務指派與狀態管理
 - 營運提醒中心：偵測即將到期任務、待付款訂單與即將出發行程，並支援防重複與人工處理
+- AI Follow-up Copilot：產生內部摘要、建議步驟與可編輯的旅客聯絡草稿；核准不會自動寄送
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
@@ -84,6 +85,8 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 營運提醒列表 | `GET` | `/api/reminders` |
 | 掃描目前營運風險 | `POST` | `/api/reminders/scan` |
 | 將提醒標記為已處理或略過 | `PATCH` | `/api/reminders/{reminder_id}` |
+| 產生 AI 跟進草稿 | `POST` | `/api/reminders/{reminder_id}/ai-draft` |
+| 核准或退回跟進草稿 | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -169,6 +172,19 @@ Provider 每次嘗試只送出一個 Structured Output 請求。遇到暫時性�
 Email 或電話。免費額度可能允許 Google 使用提交內容改善產品，因此測試時不可
 使用真實客戶資料，上線前也必須重新檢查資料處理條款。
 
+## AI Follow-up Copilot
+
+待處理的提醒可以產生一份具 Idempotency 保護的跟進草稿，內容包含內部摘要、
+建議步驟，以及可由顧問修改的旅客聯絡文字。本機 Provider 的輸出可重現；設定
+`AI_FOLLOWUP_PROVIDER=gemini` 時會使用 Gemini Structured Output。若未設定此
+變數，則會沿用 `AI_PLANNING_PROVIDER`。
+
+送到外部模型的 Allowlist 只包含會員姓名、等級、語系，以及提醒類型、原因、
+嚴重度和建議動作；不包含 Email、電話、完整付款紀錄或無關的 CRM 備註。所有
+輸出都標示 `requires_human_review`。核准只代表草稿可供顧問使用，不會寄送 Email、
+SMS 或任何其他旅客通知。外部模型重試後仍無法使用時，流程會產生清楚標示的
+本機 Fallback 草稿，避免營運工作完全中斷。
+
 ## 本機執行
 
 若要在容器外執行 API，先複製環境設定範例：
@@ -210,10 +226,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **32 項自動測試**。
+目前共通過 **35 項自動測試**。
 
 ## 下一階段
 
-1. AI 規劃 Regression Fixtures 與 Provider Evaluation
+1. AI 規劃與跟進草稿的 Regression Fixtures 與 Provider Evaluation
 2. 排程式提醒執行與 Integration Retry Processing
-3. 正式 Payment Provider Adapter 與 Secret Management
+3. 正式通訊／Payment Provider Adapter 與 Secret Management

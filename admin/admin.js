@@ -331,11 +331,23 @@ function renderReminders() {
     <p>相同來源與期限只會建立一次；處理結果會留下審核人員與時間。</p>`;
   $("#reminder-board").innerHTML = state.reminders.length ? state.reminders.map((item) => {
     const payload = item.payload || {};
+    const draft = item.ai_draft;
+    const draftPanel = draft ? `<details class="ai-followup" open>
+      <summary><span>✦ AI Follow-up Copilot</span><span class="status-badge ${escapeHtml(item.ai_draft_status)}">${escapeHtml(labels[item.ai_draft_status] || item.ai_draft_status)}</span></summary>
+      <div class="ai-followup-body">
+        ${draft.provider_warning ? `<div class="guardrail-note">⚠ ${escapeHtml(draft.provider_warning)}</div>` : ""}
+        <p><strong>內部摘要</strong>${escapeHtml(draft.internal_summary)}</p>
+        <div><strong>建議步驟</strong><ol>${(draft.recommended_steps || []).map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol></div>
+        <div class="message-draft"><small>聯絡草稿 · 尚未寄送</small><strong>${escapeHtml(draft.message_subject)}</strong><p>${escapeHtml(draft.message_body)}</p></div>
+        ${item.ai_draft_status === "awaiting_review" ? `<footer><button class="button primary compact" data-review-followup="${item.id}" data-decision="approve">核准供顧問使用</button><button class="button ghost compact" data-review-followup="${item.id}" data-decision="reject">退回草稿</button></footer>` : `<small>此狀態只記錄人工判斷，不會觸發寄送。</small>`}
+      </div>
+    </details>` : (item.status === "scheduled" ? `<button class="button ghost compact ai-draft-button" data-generate-followup="${item.id}">✦ 產生 AI 跟進草稿</button>` : "");
     return `<article class="panel reminder-card ${escapeHtml(payload.severity || "normal")}">
       <div class="reminder-icon">${item.reminder_type === "payment_follow_up" ? "$" : item.reminder_type === "trip_countdown" ? "✈" : "!"}</div>
       <div class="reminder-copy"><p class="eyebrow">${escapeHtml(labels[item.reminder_type] || item.reminder_type)} · ${escapeHtml(payload.severity || "normal")}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(payload.reason || "需要人工確認")}</p><small>建議：${escapeHtml(payload.recommended_action || "檢查最新狀態")} · ${formatDate(item.scheduled_at, true)}</small></div>
       <span class="status-badge ${escapeHtml(item.status)}">${escapeHtml(labels[item.status] || item.status)}</span>
       <div class="reminder-actions">${item.status === "scheduled" ? `<button class="button primary compact" data-reminder-status="${item.id}" data-target-status="acknowledged">已處理</button><button class="button ghost compact" data-reminder-status="${item.id}" data-target-status="dismissed">略過</button>` : `<small>${item.reviewed_at ? formatDate(item.reviewed_at, true) : "已完成審核"}</small>`}</div>
+      ${draftPanel}
     </article>`;
   }).join("") : '<div class="panel empty-state">尚無提醒。按「掃描營運風險」檢查目前資料。</div>';
 }
@@ -714,6 +726,31 @@ $("#scan-reminders-button").addEventListener("click", async (event) => {
 });
 
 $("#reminder-board").addEventListener("click", async (event) => {
+  const generateButton = event.target.closest("[data-generate-followup]");
+  const reviewButton = event.target.closest("[data-review-followup]");
+  if (generateButton) {
+    generateButton.disabled = true;
+    try {
+      await api(`/api/reminders/${generateButton.dataset.generateFollowup}/ai-draft`, {
+        method: "POST",
+        headers: { "Idempotency-Key": `followup-${generateButton.dataset.generateFollowup}-${crypto.randomUUID()}` },
+      });
+      await loadData(); showSection("reminders"); showToast("AI 跟進草稿已產生，等待人工審核");
+    } catch (error) { generateButton.disabled = false; showToast(error.message, true); }
+    return;
+  }
+  if (reviewButton) {
+    reviewButton.disabled = true;
+    try {
+      await api(`/api/reminders/${reviewButton.dataset.reviewFollowup}/ai-draft/review`, {
+        method: "POST",
+        body: JSON.stringify({ decision: reviewButton.dataset.decision, notes: null }),
+      });
+      await loadData(); showSection("reminders");
+      showToast(reviewButton.dataset.decision === "approve" ? "草稿已核准供顧問使用；尚未寄送" : "AI 草稿已退回");
+    } catch (error) { reviewButton.disabled = false; showToast(error.message, true); }
+    return;
+  }
   const button = event.target.closest("[data-reminder-status]");
   if (!button) return;
   button.disabled = true;

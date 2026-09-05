@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 
 from dependencies import get_current_user, get_db_connection, require_roles
-from models.reminder import ReminderResponse, ReminderScanResponse, ReminderStatus, ReminderUpdate
+from models.reminder import FollowUpReview, ReminderResponse, ReminderScanResponse, ReminderStatus, ReminderUpdate
 from repositories import reminder_repository as repository
 from services.workflow import InvalidTransition, ensure_reminder_transition
+from services.planning_provider import PlanningProviderConfigurationError, PlanningProviderError
 
 
 router = APIRouter(prefix="/api", tags=["operational reminders"])
@@ -55,3 +56,52 @@ def update_reminder(
         current_user["id"],
         datetime.now(timezone.utc).replace(tzinfo=None),
     )
+
+
+@router.post(
+    "/reminders/{reminder_id}/ai-draft",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ReminderResponse,
+)
+def create_followup_draft(
+    reminder_id: int,
+    response: Response,
+    idempotency_key: str = Header(min_length=8, max_length=128, alias="Idempotency-Key"),
+    connection=Depends(get_db_connection),
+    current_user: dict = Depends(write_access),
+):
+    try:
+        reminder, created = repository.create_followup_draft(
+            connection, reminder_id, idempotency_key, current_user["id"]
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except repository.FollowUpConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except PlanningProviderConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except PlanningProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return reminder
+
+
+@router.post(
+    "/reminders/{reminder_id}/ai-draft/review",
+    response_model=ReminderResponse,
+)
+def review_followup_draft(
+    reminder_id: int,
+    payload: FollowUpReview,
+    connection=Depends(get_db_connection),
+    current_user: dict = Depends(write_access),
+):
+    try:
+        return repository.review_followup_draft(
+            connection, reminder_id, payload.decision.value, payload.notes, current_user["id"]
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except repository.FollowUpConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc

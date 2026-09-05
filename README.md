@@ -26,6 +26,8 @@ contracts and operational data before introducing model-driven automation.
 - Internal task assignment and lifecycle management
 - Internal operations reminder center for due tasks, pending payments, and
   upcoming departures, with deduplication and human acknowledgement
+- AI Follow-up Copilot for internal summaries, recommended actions, and editable
+  traveler-message drafts; approval never sends a message automatically
 - Audit logs for CRM mutations
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
@@ -89,6 +91,8 @@ an authenticated admin.
 | Operations reminders | `GET` | `/api/reminders` |
 | Scan current operational risks | `POST` | `/api/reminders/scan` |
 | Acknowledge or dismiss reminder | `PATCH` | `/api/reminders/{reminder_id}` |
+| Generate AI follow-up draft | `POST` | `/api/reminders/{reminder_id}/ai-draft` |
+| Approve or reject follow-up draft | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -189,6 +193,22 @@ travel preferences. It does not transmit member email or phone. The free tier
 may use submitted content to improve Google products, so do not use real client
 data during testing and reassess the data-processing terms before production.
 
+## AI Follow-up Copilot
+
+An active reminder can generate one idempotent follow-up draft containing an
+internal summary, recommended steps, and an editable traveler-message draft.
+The local provider is deterministic. When `AI_FOLLOWUP_PROVIDER=gemini`—or when
+that variable is omitted and `AI_PLANNING_PROVIDER=gemini`—the Copilot uses the
+configured Gemini model with structured output.
+
+The external context allowlist includes only member name, tier, locale, reminder
+type, reason, severity, and recommended action. It excludes email, phone, full
+payment records, and unrelated CRM notes. Every output is marked
+`requires_human_review`; approving a draft only records that it is available to
+the advisor and never sends email, SMS, or any other customer communication. If
+the external model remains unavailable after retries, the workflow records a
+clearly labelled local fallback draft so operations can continue safely.
+
 ## Run locally
 
 Copy the example environment file if running the API outside containers:
@@ -231,10 +251,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **32 automated tests**.
+The current suite passes **35 automated tests**.
 
 ## Next milestone
 
-1. AI planning regression fixtures and provider evaluation
+1. AI planning and follow-up regression fixtures with provider evaluation
 2. Scheduled reminder execution and integration retry processing
-3. Production payment-provider adapter and secret management
+3. Production communication/payment adapters and secret management
