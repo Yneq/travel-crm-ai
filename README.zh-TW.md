@@ -25,6 +25,7 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 內部任務指派與狀態管理
 - 營運提醒中心：偵測即將到期任務、待付款訂單與即將出發行程，並支援防重複與人工處理
 - AI Follow-up Copilot：產生內部摘要、建議步驟與可編輯的旅客聯絡草稿；核准不會自動寄送
+- 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
@@ -185,6 +186,26 @@ Email 或電話。免費額度可能允許 Google 使用提交內容改善產品
 SMS 或任何其他旅客通知。外部模型重試後仍無法使用時，流程會產生清楚標示的
 本機 Fallback 草稿，避免營運工作完全中斷。
 
+## AI Regression Evaluation
+
+執行不會呼叫外部 API、可重現的本機 Baseline：
+
+```bash
+python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.json
+```
+
+Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存第一份
+結果：**6/6 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查皆為
+100%。Fixtures 包含 3 個行程規劃與 3 個 Follow-up 情境。這個結果只證明已定義的
+Contract，不代表主觀行程品質、即時供應商資訊或 Production Network 效能。
+
+Gemini 評估會呼叫外部服務，因此必須明確加入 Opt-in 參數：
+
+```bash
+python scripts/evaluate_ai.py --provider gemini --allow-live-api \
+  --output output/ai-eval-gemini.json
+```
+
 ## 本機執行
 
 若要在容器外執行 API，先複製環境設定範例：
@@ -226,10 +247,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **35 項自動測試**。
+目前共通過 **37 項自動測試**。
 
 ## 下一階段
 
-1. AI 規劃與跟進草稿的 Regression Fixtures 與 Provider Evaluation
+1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
 2. 排程式提醒執行與 Integration Retry Processing
 3. 正式通訊／Payment Provider Adapter 與 Secret Management

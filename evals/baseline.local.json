@@ -1,0 +1,121 @@
+{
+  "fixture_version": "1.0.0",
+  "provider_requested": "local",
+  "evaluated_at": "2026-09-05T09:29:29.940958+00:00",
+  "overall": {
+    "case_count": 6,
+    "passed_count": 6,
+    "pass_rate": 1.0,
+    "schema_valid_rate": 1.0,
+    "guardrail_pass_rate": 1.0,
+    "privacy_pass_rate": 1.0,
+    "claim_safety_pass_rate": 1.0,
+    "latency": {
+      "average_ms": 1.97,
+      "p95_ms": 6.29
+    }
+  },
+  "workflows": {
+    "planning": {
+      "provider": "local-planner",
+      "summary": {
+        "case_count": 3,
+        "passed_count": 3,
+        "pass_rate": 1.0,
+        "schema_valid_rate": 1.0,
+        "guardrail_pass_rate": 1.0,
+        "privacy_pass_rate": 1.0,
+        "claim_safety_pass_rate": 1.0,
+        "latency": {
+          "average_ms": 3.93,
+          "p95_ms": 6.29
+        }
+      },
+      "cases": [
+        {
+          "id": "tokyo_family_complete",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 6.29,
+          "error": null
+        },
+        {
+          "id": "kyoto_missing_details",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 2.85,
+          "error": null
+        },
+        {
+          "id": "paris_accessibility",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 2.65,
+          "error": null
+        }
+      ]
+    },
+    "followup": {
+      "provider": "local-followup",
+      "summary": {
+        "case_count": 3,
+        "passed_count": 3,
+        "pass_rate": 1.0,
+        "schema_valid_rate": 1.0,
+        "guardrail_pass_rate": 1.0,
+        "privacy_pass_rate": 1.0,
+        "claim_safety_pass_rate": 1.0,
+        "latency": {
+          "average_ms": 0.0,
+          "p95_ms": 0.0
+        }
+      },
+      "cases": [
+        {
+          "id": "task_due",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 0.0,
+          "error": null
+        },
+        {
+          "id": "payment_follow_up",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 0.0,
+          "error": null
+        },
+        {
+          "id": "trip_countdown",
+          "passed": true,
+          "schema_valid": true,
+          "guardrail_pass": true,
+          "privacy_pass": true,
+          "claim_safety_pass": true,
+          "latency_ms": 0.0,
+          "error": null
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "This regression set checks contracts and explicit guardrails, not subjective itinerary quality.",
+    "Local-provider latency is not representative of an external model or production network.",
+    "No real traveler data is used."
+  ]
+}

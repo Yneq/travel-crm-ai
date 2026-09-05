@@ -1,0 +1,61 @@
+{
+  "version": "1.0.0",
+  "planning": [
+    {
+      "id": "tokyo_family_complete",
+      "context": {
+        "member": {"name": "Regression Traveler A", "tier": "vip", "locale": "zh-TW", "email": "planning-canary@example.com", "phone": "0900111222"},
+        "request": {"title": "東京親子三日", "destination": "東京", "start_date": "2026-10-01", "end_date": "2026-10-03", "party_size": 3, "budget_currency": "TWD", "budget_amount": 180000, "requirements": {"notes": "親子友善"}, "version": 1},
+        "preferences": {"travel_styles": ["family", "culture"], "dietary_restrictions": [], "room_preferences": ["non-smoking"], "accessibility_needs": []}
+      },
+      "notes": "避免太早出發",
+      "expected_missing_fields": [],
+      "minimum_items": 3
+    },
+    {
+      "id": "kyoto_missing_details",
+      "context": {
+        "member": {"name": "Regression Traveler B", "tier": "standard", "locale": "zh-TW", "email": "planning-canary@example.com", "phone": "0900111222"},
+        "request": {"title": "京都文化旅行", "destination": "京都", "start_date": null, "end_date": null, "party_size": 2, "budget_currency": "TWD", "budget_amount": null, "requirements": {}, "version": 1},
+        "preferences": {"travel_styles": ["culture"], "dietary_restrictions": [], "room_preferences": [], "accessibility_needs": []}
+      },
+      "notes": null,
+      "expected_missing_fields": ["start_date", "end_date", "budget_amount", "requirements"],
+      "minimum_items": 3
+    },
+    {
+      "id": "paris_accessibility",
+      "context": {
+        "member": {"name": "Regression Traveler C", "tier": "premium", "locale": "zh-TW", "email": "planning-canary@example.com", "phone": "0900111222"},
+        "request": {"title": "巴黎五日慢旅", "destination": "巴黎", "start_date": "2026-11-10", "end_date": "2026-11-14", "party_size": 2, "budget_currency": "TWD", "budget_amount": 320000, "requirements": {"notes": "每天保留休息時間"}, "version": 2},
+        "preferences": {"travel_styles": ["luxury", "slow-travel"], "dietary_restrictions": ["vegetarian"], "room_preferences": ["quiet-room"], "accessibility_needs": ["step-free"]}
+      },
+      "notes": "所有交通仍需顧問查證",
+      "expected_missing_fields": [],
+      "minimum_items": 5
+    }
+  ],
+  "followup": [
+    {
+      "id": "task_due",
+      "context": {
+        "member": {"name": "Regression Traveler D", "tier": "vip", "locale": "zh-TW", "email": "followup-canary@example.com", "phone": "0911222333"},
+        "reminder": {"type": "task_due", "title": "即將到期：確認護照資料", "reason": "任務將在 24 小時內到期", "recommended_action": "確認負責人與最新處理進度", "severity": "high"}
+      }
+    },
+    {
+      "id": "payment_follow_up",
+      "context": {
+        "member": {"name": "Regression Traveler E", "tier": "premium", "locale": "zh-TW", "email": "followup-canary@example.com", "phone": "0911222333"},
+        "reminder": {"type": "payment_follow_up", "title": "待付款訂單：ORD-EVAL", "reason": "訂單建立超過 24 小時仍未完成付款", "recommended_action": "由顧問確認付款狀態，再決定是否聯絡旅客", "severity": "high"}
+      }
+    },
+    {
+      "id": "trip_countdown",
+      "context": {
+        "member": {"name": "Regression Traveler F", "tier": "standard", "locale": "zh-TW", "email": "followup-canary@example.com", "phone": "0911222333"},
+        "reminder": {"type": "trip_countdown", "title": "出發前確認：大阪四日", "reason": "旅程將在 14 天內出發", "recommended_action": "確認文件、付款、聯絡資訊與最後行程版本", "severity": "normal"}
+      }
+    }
+  ]
+}

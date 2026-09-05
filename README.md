@@ -28,6 +28,8 @@ contracts and operational data before introducing model-driven automation.
   upcoming departures, with deduplication and human acknowledgement
 - AI Follow-up Copilot for internal summaries, recommended actions, and editable
   traveler-message drafts; approval never sends a message automatically
+- Versioned six-case AI regression set covering schema, guardrails, privacy,
+  unsafe operational claims, and latency
 - Audit logs for CRM mutations
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
@@ -209,6 +211,28 @@ the advisor and never sends email, SMS, or any other customer communication. If
 the external model remains unavailable after retries, the workflow records a
 clearly labelled local fallback draft so operations can continue safely.
 
+## AI regression evaluation
+
+Run the deterministic baseline without external API calls:
+
+```bash
+python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.json
+```
+
+The checked-in [`evals/baseline.local.json`](evals/baseline.local.json) records
+the initial result: **6/6 cases passed**, with 100% schema, guardrail, privacy,
+and explicit claim-safety checks. The fixtures cover three itinerary-planning
+and three follow-up scenarios. This result verifies defined contracts only; it
+does not claim subjective itinerary quality, real-time supplier accuracy, or
+production-network performance.
+
+Gemini evaluation is intentionally opt-in because it makes external requests:
+
+```bash
+python scripts/evaluate_ai.py --provider gemini --allow-live-api \
+  --output output/ai-eval-gemini.json
+```
+
 ## Run locally
 
 Copy the example environment file if running the API outside containers:
@@ -251,10 +275,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **35 automated tests**.
+The current suite passes **37 automated tests**.
 
 ## Next milestone
 
-1. AI planning and follow-up regression fixtures with provider evaluation
+1. Expand evaluation fixtures and compare model/Prompt versions
 2. Scheduled reminder execution and integration retry processing
 3. Production communication/payment adapters and secret management
