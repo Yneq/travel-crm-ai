@@ -17,6 +17,7 @@ const state = {
   aiPlans: [],
   aiProviderStatus: null,
   latestAgentRun: null,
+  actionProposals: [],
   staffUsers: [],
   auditPage: { items: [], total: 0, limit: 50, offset: 0 },
   auditFacets: { entity_types: [], actions: [], actors: [] },
@@ -209,7 +210,7 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus, state.actionProposals] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
@@ -222,6 +223,7 @@ async function loadData() {
       api("/api/quotes"),
       api("/api/orders"),
       api("/api/ai/providers/status"),
+      api("/api/operations-agent/proposals"),
     ]);
     const communicationVersionLists = await Promise.all(
       state.communicationDrafts.map((draft) => api(`/api/communication-drafts/${draft.id}/versions`))
@@ -312,16 +314,21 @@ function renderStats() {
 function renderOperationsAgent() {
   const container = $("#operations-agent-result");
   const run = state.latestAgentRun;
-  if (!run) {
-    container.innerHTML = '<div class="agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>';
-    return;
-  }
-  container.innerHTML = `
+  const resultHtml = run ? `
     <div class="agent-result-heading"><div><p class="eyebrow">EVIDENCE-BACKED RESPONSE</p><h2>營運建議</h2></div><div class="agent-run-id"><strong>Run #${run.run_id}</strong><small>${escapeHtml(run.provider)} · ${run.node_trace.length} 個步驟${run.fallback_used ? " · fallback" : ""}</small></div></div>
     <div class="agent-answer">${escapeHtml(run.answer).replaceAll("\n", "<br>")}</div>
     <div class="agent-tools"><strong>使用的唯讀工具</strong><div>${run.tools_used.map((tool) => `<span><b>${escapeHtml(tool.label)}</b><small>${tool.result_count} 筆結果</small></span>`).join("")}</div></div>
     <div class="agent-guardrail"><strong>✓ Human-in-the-loop</strong><p>${escapeHtml(run.guardrails.note)}</p></div>
-    <details class="agent-trace"><summary>查看 LangGraph 執行路徑</summary><ol>${run.node_trace.map((node) => `<li>${escapeHtml(node)}</li>`).join("")}</ol></details>`;
+    <details class="agent-trace"><summary>查看 LangGraph 執行路徑</summary><ol>${run.node_trace.map((node) => `<li>${escapeHtml(node)}</li>`).join("")}</ol></details>`
+    : '<div class="agent-empty compact-agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>';
+  const canReview = ["admin", "advisor"].includes(state.user?.role);
+  const proposals = state.actionProposals.slice(0, 8);
+  const proposalsHtml = proposals.length ? `<div class="agent-proposals"><div class="agent-proposals-heading"><div><p class="eyebrow">WRITE PROPOSALS</p><h3>待人工決定的動作</h3></div><small>AI 不會直接寫入</small></div>${proposals.map((proposal) => {
+    const payload = proposal.action_payload;
+    const pending = proposal.status === "pending";
+    return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div><strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 期限 ${formatDate(payload.due_at, true)}</small></div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
+  }).join("")}</div>` : "";
+  container.innerHTML = resultHtml + proposalsHtml;
 }
 
 function memberName(memberId) {
@@ -779,12 +786,36 @@ $("#operations-agent-form").addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ question: $("#operations-agent-question").value.trim() }),
     });
+    state.actionProposals = [
+      ...(state.latestAgentRun.proposed_actions || []),
+      ...state.actionProposals,
+    ];
     renderOperationsAgent();
     showToast("Agent 已完成唯讀分析");
   } catch (error) { showToast(error.message, true); }
   finally {
     button.disabled = false;
     button.textContent = "✧ 執行 Agent";
+  }
+});
+
+$("#operations-agent-result").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-review-proposal]");
+  if (!button) return;
+  const decision = button.dataset.decision;
+  button.disabled = true;
+  try {
+    await api(`/api/operations-agent/proposals/${button.dataset.reviewProposal}/review`, {
+      method: "POST",
+      body: JSON.stringify({ decision, notes: null }),
+    });
+    await loadData();
+    showSection("operations-agent");
+    showToast(decision === "approved" ? "提案已核准，內部任務已建立" : "提案已退回，沒有寫入任務");
+  } catch (error) {
+    await loadData();
+    showSection("operations-agent");
+    showToast(error.message, true);
   }
 });
 

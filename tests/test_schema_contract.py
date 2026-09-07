@@ -42,6 +42,7 @@ class SchemaContractTests(unittest.TestCase):
             "communication_drafts",
             "communication_templates",
             "communication_draft_versions",
+            "agent_action_proposals",
             "audit_logs",
         }
 
@@ -57,6 +58,8 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("uk_ai_runs_idempotency", self.migration)
         self.assertIn("reviewed_by", self.migration)
         self.assertIn("applied_trip_id", self.migration)
+        self.assertIn("agent_action_proposals", self.migration)
+        self.assertIn("executed_entity_id", self.migration)
 
     def test_operational_reminders_are_deduplicated_and_reviewable(self):
         self.assertIn("uk_reminders_dedup", self.migration)

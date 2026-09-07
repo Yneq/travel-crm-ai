@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -66,6 +67,45 @@ def synthesize_answer(tool_results: list[dict]) -> str:
     return "\n\n".join(sections)
 
 
+def build_action_candidates(
+    question: str,
+    tool_results: list[dict],
+    now: datetime | None = None,
+) -> list[dict]:
+    normalized = question.lower()
+    requests_task = any(
+        phrase in normalized
+        for phrase in ("建立任務", "新增任務", "建立跟進", "安排跟進", "create task")
+    )
+    if not requests_task:
+        return []
+    payment_execution = next(
+        (item for item in tool_results if item["tool"] == "payment_followups"), None
+    )
+    if not payment_execution:
+        return []
+    due_at = (now or datetime.now(timezone.utc)) + timedelta(days=1)
+    candidates = []
+    for order in payment_execution["result"].get("items", [])[:3]:
+        candidates.append({
+            "action_type": "create_task",
+            "label": f"建立 {order['order_number']} 付款跟進任務",
+            "action_payload": {
+                "title": f"追蹤待付款訂單 {order['order_number']}",
+                "description": (
+                    f"先由顧問確認 {order['member_name']} 的訂單 {order['order_number']} 最新付款狀態，"
+                    "再決定是否聯絡旅客；此提案不會執行付款或寄送訊息。"
+                ),
+                "member_id": order["member_id"],
+                "priority": "high",
+                "due_at": due_at.replace(tzinfo=None).isoformat(timespec="seconds"),
+                "source_type": "order",
+                "source_id": order["id"],
+            },
+        })
+    return candidates
+
+
 def build_operations_agent_graph(execute_tool: Callable[[str], dict]):
     def route(state: OperationsAgentState) -> dict:
         return {
@@ -127,13 +167,18 @@ def run_operations_agent(question: str, execute_tool: Callable[[str], dict]) -> 
         }
         for item in result["tool_results"]
     ]
+    candidates = build_action_candidates(question, result["tool_results"])
     return {
         "answer": result["answer"],
         "tools_used": tools_used,
-        "node_trace": result["node_trace"],
+        "node_trace": [
+            *result["node_trace"],
+            *(["propose_human_approved_action"] if candidates else []),
+        ],
         "guardrails": result["guardrails"],
         "provider": "langgraph-local",
         "fallback_used": False,
+        "action_candidates": candidates,
     }
 
 
@@ -149,6 +194,7 @@ def run_operations_agent_with_fallback(
         active_provider = provider or get_operations_agent_provider(provider_name)
         model_result = active_provider.run(question, execute_tool)
         tool_results = model_result["tool_results"]
+        candidates = build_action_candidates(question, tool_results)
         output = {
             "answer": model_result["answer"],
             "tools_used": [
@@ -165,6 +211,7 @@ def run_operations_agent_with_fallback(
                 *[f"function_call:{item['tool']}" for item in tool_results],
                 "model_synthesize_evidence",
                 "enforce_read_only_guardrail",
+                *(["propose_human_approved_action"] if candidates else []),
             ],
             "guardrails": {
                 "read_only_tools": True,
@@ -174,6 +221,7 @@ def run_operations_agent_with_fallback(
             },
             "provider": model_result["provider"],
             "fallback_used": model_result.get("fallback_used", False),
+            "action_candidates": candidates,
         }
         return output
     except Exception:

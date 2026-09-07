@@ -35,6 +35,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - LangGraph CRM Operations Agent：依問題選擇多個唯讀工具、逐步執行、產生有資料
   依據的回答與節點 Trace，支援 Gemini Function Calling 與本機 Fallback，並由
   Human-in-the-loop Guardrail 禁止直接執行外部動作
+- Agent 寫入提案：只有人工核准後才建立內部跟進任務，並具來源狀態重驗、
+  防重複執行及原子 Audit 紀錄
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
@@ -116,6 +118,8 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 篩選及分頁查詢 Audit Log（限管理員） | `GET` | `/api/audit-logs` |
 | Audit Log 篩選選項（限管理員） | `GET` | `/api/audit-logs/facets` |
 | 執行唯讀 CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
+| 查詢 Agent Action Proposals | `GET` | `/api/operations-agent/proposals` |
+| 核准或退回 Agent Proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -216,6 +220,12 @@ Operations Copilot 僅開放四個 Allowlist 唯讀函式：營運數量總覽�
 並把不含憑證的摘要寫入 Audit Log。模型若產生已執行外部動作的危險宣稱會被拒絕。
 可用性依序降級為 Gemini 3.8 Flash、Gemini 3.5 Flash Lite、本機 Deterministic
 LangGraph Router，因此外部模型暫時失效時仍可查詢核心營運資料。
+
+使用者明確要求替待付款訂單建立跟進任務時，Agent 只會儲存 `pending` Proposal，
+不會直接寫入 CRM。必須由 `admin` 或 `advisor` 人工核准；核准時會重新確認來源訂單
+仍為待付款、阻擋同一訂單被重複建立 Agent 任務，並在同一筆 Transaction 建立任務、
+將提案標記為 `executed` 及寫入 Audit Log。退回不會改變任務資料。Proposal 不允許
+執行付款、預訂、建立訂單或對外通訊。
 
 ## AI Follow-up Copilot
 
@@ -327,10 +337,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **62 項自動測試**。
+目前共通過 **64 項自動測試**。
 
 ## 下一階段
 
-1. 為特定 Agent 動作加入明確的人工核准 Write Proposal
-2. 擴充 Live-model Evaluation，並比較不同 Model／Prompt 版本
+1. 擴充 Live-model Evaluation，並比較不同 Model／Prompt 版本
+2. 加入 Proposal 到期機制與更完整的 Reviewer Notes
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

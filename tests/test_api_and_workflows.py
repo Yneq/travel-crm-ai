@@ -20,6 +20,7 @@ from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
 from services.staff_policy import StaffPolicyConflict, ensure_staff_change_allowed
 from services.operations_agent_graph import (
+    build_action_candidates,
     run_operations_agent,
     run_operations_agent_with_fallback,
     select_tools,
@@ -132,6 +133,8 @@ class ApiContractTests(unittest.TestCase):
             ("/api/audit-logs", "get"),
             ("/api/audit-logs/facets", "get"),
             ("/api/operations-agent/runs", "post"),
+            ("/api/operations-agent/proposals", "get"),
+            ("/api/operations-agent/proposals/{proposal_id}/review", "post"),
         }
 
         for path, method in expected:
@@ -237,6 +240,27 @@ class StaffPolicyTests(unittest.TestCase):
 
 
 class OperationsAgentTests(unittest.TestCase):
+    def test_write_intent_creates_task_proposal_without_executing(self):
+        candidates = build_action_candidates(
+            "替未付款訂單建立跟進任務",
+            [{
+                "tool": "payment_followups",
+                "result": {"items": [{
+                    "id": 7, "member_id": 3, "order_number": "ORD-007",
+                    "member_name": "Regression Member",
+                }]},
+            }],
+            now=datetime(2026, 9, 7),
+        )
+
+        self.assertEqual(1, len(candidates))
+        self.assertEqual("create_task", candidates[0]["action_type"])
+        self.assertEqual(7, candidates[0]["action_payload"]["source_id"])
+        self.assertNotIn("payment", candidates[0]["action_type"])
+
+    def test_read_question_does_not_create_write_proposal(self):
+        self.assertEqual([], build_action_candidates("有哪些未付款訂單？", []))
+
     def test_question_selects_multiple_relevant_tools(self):
         self.assertEqual(
             ["overdue_tasks", "payment_followups"],
@@ -307,6 +331,8 @@ class OperationsAgentTests(unittest.TestCase):
     def test_unsafe_model_action_claim_is_rejected(self):
         with self.assertRaises(OperationsAgentProviderError):
             validate_model_answer("已替你付款，訂單處理完成。")
+        with self.assertRaises(OperationsAgentProviderError):
+            validate_model_answer("已建立任務並安排同仁跟進。")
 
 
 class WorkflowTests(unittest.TestCase):

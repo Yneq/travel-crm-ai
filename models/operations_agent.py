@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -11,6 +14,27 @@ class ToolExecution(BaseModel):
     result_count: int
 
 
+class ActionProposalResponse(BaseModel):
+    id: int
+    ai_run_id: int
+    action_type: str
+    action_payload: dict
+    status: str
+    created_by: int
+    reviewed_by: int | None
+    review_notes: str | None
+    reviewed_at: datetime | None
+    executed_entity_type: str | None
+    executed_entity_id: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ActionProposalReview(BaseModel):
+    decision: Literal["approved", "rejected"]
+    notes: str | None = Field(default=None, max_length=1000)
+
+
 class OperationsAgentResponse(BaseModel):
     run_id: int
     answer: str
@@ -19,3 +43,4 @@ class OperationsAgentResponse(BaseModel):
     guardrails: dict
     provider: str
     fallback_used: bool
+    proposed_actions: list[ActionProposalResponse] = Field(default_factory=list)

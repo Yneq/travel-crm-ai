@@ -38,6 +38,8 @@ operational data with guarded model-driven automation.
 - LangGraph CRM Operations Agent with intent routing, a multi-step read-only tool
   loop, Gemini Function Calling, deterministic fallback, execution traces, and
   human-in-the-loop guardrails
+- Human-approved Agent write proposals for internal follow-up tasks, with stale-
+  source validation, duplicate-execution protection, and atomic audit records
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -124,6 +126,8 @@ revoked account cannot continue using an older JWT.
 | Filtered, paginated audit history (admin only) | `GET` | `/api/audit-logs` |
 | Audit filter facets (admin only) | `GET` | `/api/audit-logs/facets` |
 | Run the read-only CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
+| List Agent action proposals | `GET` | `/api/operations-agent/proposals` |
+| Approve or reject an Agent proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -244,6 +248,14 @@ in `ai_runs`, with a credential-safe summary in the Audit Log. Unsafe external-
 action claims fail validation. Availability degrades from Gemini 3.8 Flash to
 Gemini 3.5 Flash Lite and then to the deterministic local LangGraph router, so an
 LLM outage does not remove access to core operational data.
+
+When a user explicitly asks to create a follow-up task for a pending-payment
+order, the Agent stores a `pending` proposal instead of writing to CRM. An
+`admin` or `advisor` must approve it. Approval rechecks that the source order is
+still awaiting payment, prevents a second Agent-created task for the same order,
+and atomically creates the task, marks the proposal `executed`, and writes Audit
+Log entries. Rejection leaves task data unchanged. No proposal can execute a
+payment, booking, order, or external communication.
 
 ## AI Follow-up Copilot
 
@@ -370,10 +382,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **62 automated tests**.
+The current suite passes **64 automated tests**.
 
 ## Next milestone
 
-1. Add explicit human-approved write proposals for selected Agent actions
-2. Expand live-model evaluation and compare model/prompt versions
+1. Expand live-model evaluation and compare model/prompt versions
+2. Add proposal expiry and richer reviewer notes
 3. Production communication/payment adapters, monitoring, and secret management
