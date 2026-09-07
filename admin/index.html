@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/admin-assets/admin.css?v=15" />
-    <script src="/admin-assets/admin.js?v=15" defer></script>
+    <link rel="stylesheet" href="/admin-assets/admin.css?v=16" />
+    <script src="/admin-assets/admin.js?v=16" defer></script>
   </head>
   <body>
     <div class="ambient ambient-one"></div>
@@ -310,6 +310,23 @@
         </div>
         <p class="form-error"></p>
         <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立報價快照</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="proposal-review-dialog">
+      <form id="proposal-review-form" class="dialog-card">
+        <input name="proposal_id" type="hidden" />
+        <input name="decision" type="hidden" />
+        <header><div><p class="eyebrow">HUMAN APPROVAL</p><h2 id="proposal-review-title">審核 Agent 提案</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="proposal-review-summary">
+          <strong id="proposal-review-action">—</strong>
+          <p id="proposal-review-description">—</p>
+          <small id="proposal-review-expiry">—</small>
+        </div>
+        <label class="review-notes-label">審核備註<textarea name="notes" rows="4" maxlength="1000" placeholder="可補充核准依據；退回時請填寫原因"></textarea></label>
+        <p id="proposal-review-notice" class="muted dialog-notice"></p>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button id="proposal-review-submit" class="button primary" type="submit">確認</button></footer>
       </form>
     </dialog>
 

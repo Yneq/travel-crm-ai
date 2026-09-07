@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class OperationsAgentRequest(BaseModel):
@@ -20,6 +20,7 @@ class ActionProposalResponse(BaseModel):
     action_type: str
     action_payload: dict
     status: str
+    expires_at: datetime
     created_by: int
     reviewed_by: int | None
     review_notes: str | None
@@ -33,6 +34,14 @@ class ActionProposalResponse(BaseModel):
 class ActionProposalReview(BaseModel):
     decision: Literal["approved", "rejected"]
     notes: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def require_rejection_notes(self):
+        if self.decision == "rejected" and not (self.notes or "").strip():
+            raise ValueError("退回提案時必須填寫理由")
+        if self.notes is not None:
+            self.notes = self.notes.strip() or None
+        return self
 
 
 class OperationsAgentResponse(BaseModel):

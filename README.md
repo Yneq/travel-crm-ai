@@ -38,8 +38,9 @@ operational data with guarded model-driven automation.
 - LangGraph CRM Operations Agent with intent routing, a multi-step read-only tool
   loop, Gemini Function Calling, deterministic fallback, execution traces, and
   human-in-the-loop guardrails
-- Human-approved Agent write proposals for internal follow-up tasks, with stale-
-  source validation, duplicate-execution protection, and atomic audit records
+- Human-approved Agent write proposals for internal follow-up tasks, with
+  24-hour expiry, required rejection reasons, stale-source validation,
+  duplicate-execution protection, and atomic audit records
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -254,7 +255,9 @@ order, the Agent stores a `pending` proposal instead of writing to CRM. An
 `admin` or `advisor` must approve it. Approval rechecks that the source order is
 still awaiting payment, prevents a second Agent-created task for the same order,
 and atomically creates the task, marks the proposal `executed`, and writes Audit
-Log entries. Rejection leaves task data unchanged. No proposal can execute a
+Log entries. Each proposal expires after 24 hours; the API rechecks expiry at
+review time and records blocked attempts as `expired`. Rejection requires a
+reviewer reason and leaves task data unchanged. No proposal can execute a
 payment, booking, order, or external communication.
 
 ## AI Follow-up Copilot
@@ -382,10 +385,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **64 automated tests**.
+The current suite passes **66 automated tests**.
 
 ## Next milestone
 
 1. Expand live-model evaluation and compare model/prompt versions
-2. Add proposal expiry and richer reviewer notes
+2. Add proposal search, status filters, and review-queue pagination
 3. Production communication/payment adapters, monitoring, and secret management

@@ -240,6 +240,19 @@ class StaffPolicyTests(unittest.TestCase):
 
 
 class OperationsAgentTests(unittest.TestCase):
+    def test_rejected_proposal_requires_reviewer_notes(self):
+        from models.operations_agent import ActionProposalReview
+
+        with self.assertRaises(ValueError):
+            ActionProposalReview(decision="rejected", notes="  ")
+
+    def test_approved_proposal_allows_optional_notes(self):
+        from models.operations_agent import ActionProposalReview
+
+        review = ActionProposalReview(decision="approved")
+
+        self.assertIsNone(review.notes)
+
     def test_write_intent_creates_task_proposal_without_executing(self):
         candidates = build_action_candidates(
             "替未付款訂單建立跟進任務",

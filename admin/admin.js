@@ -326,7 +326,8 @@ function renderOperationsAgent() {
   const proposalsHtml = proposals.length ? `<div class="agent-proposals"><div class="agent-proposals-heading"><div><p class="eyebrow">WRITE PROPOSALS</p><h3>待人工決定的動作</h3></div><small>AI 不會直接寫入</small></div>${proposals.map((proposal) => {
     const payload = proposal.action_payload;
     const pending = proposal.status === "pending";
-    return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div><strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 期限 ${formatDate(payload.due_at, true)}</small></div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
+    const reviewNote = proposal.review_notes ? `<small class="proposal-review-note">審核備註：${escapeHtml(proposal.review_notes)}</small>` : "";
+    return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div><strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 任務期限 ${formatDate(payload.due_at, true)}</small><small>提案有效至 ${formatDate(proposal.expires_at, true)}</small>${reviewNote}</div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回", expired: "已過期" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
   }).join("")}</div>` : "";
   container.innerHTML = resultHtml + proposalsHtml;
 }
@@ -799,23 +800,51 @@ $("#operations-agent-form").addEventListener("submit", async (event) => {
   }
 });
 
-$("#operations-agent-result").addEventListener("click", async (event) => {
+$("#operations-agent-result").addEventListener("click", (event) => {
   const button = event.target.closest("[data-review-proposal]");
   if (!button) return;
+  const proposal = state.actionProposals.find((item) => item.id === Number(button.dataset.reviewProposal));
+  if (!proposal) return;
   const decision = button.dataset.decision;
-  button.disabled = true;
+  const form = $("#proposal-review-form");
+  form.reset();
+  form.elements.proposal_id.value = proposal.id;
+  form.elements.decision.value = decision;
+  form.elements.notes.required = decision === "rejected";
+  $("#proposal-review-title").textContent = decision === "approved" ? "核准建立內部任務" : "退回 Agent 提案";
+  $("#proposal-review-action").textContent = proposal.action_payload.title;
+  $("#proposal-review-description").textContent = proposal.action_payload.description;
+  $("#proposal-review-expiry").textContent = `提案有效至 ${formatDate(proposal.expires_at, true)}`;
+  $("#proposal-review-notice").textContent = decision === "approved"
+    ? "確認後會再次檢查來源訂單狀態，通過後才建立任務。"
+    : "退回不會寫入任務；請留下理由供 Audit Log 與後續改善使用。";
+  $("#proposal-review-submit").textContent = decision === "approved" ? "確認核准並建立" : "確認退回";
+  formError(form);
+  $("#proposal-review-dialog").showModal();
+});
+
+$("#proposal-review-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  const submit = $("#proposal-review-submit");
+  submit.disabled = true;
   try {
-    await api(`/api/operations-agent/proposals/${button.dataset.reviewProposal}/review`, {
+    await api(`/api/operations-agent/proposals/${values.proposal_id}/review`, {
       method: "POST",
-      body: JSON.stringify({ decision, notes: null }),
+      body: JSON.stringify({ decision: values.decision, notes: values.notes.trim() || null }),
     });
+    $("#proposal-review-dialog").close();
     await loadData();
     showSection("operations-agent");
-    showToast(decision === "approved" ? "提案已核准，內部任務已建立" : "提案已退回，沒有寫入任務");
+    showToast(values.decision === "approved" ? "提案已核准，內部任務已建立" : "提案已退回，沒有寫入任務");
   } catch (error) {
     await loadData();
     showSection("operations-agent");
-    showToast(error.message, true);
+    formError(form, error.message);
+    if (!$("#proposal-review-dialog").open) showToast(error.message, true);
+  } finally {
+    submit.disabled = false;
   }
 });
 

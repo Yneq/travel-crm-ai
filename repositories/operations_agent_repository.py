@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 
@@ -99,6 +99,13 @@ def start_run(connection, question: str, initiated_by: int) -> int:
 def _decode_proposal(row: dict | None) -> dict | None:
     if row is not None and isinstance(row.get("action_payload"), str):
         row["action_payload"] = json.loads(row["action_payload"])
+    if (
+        row is not None
+        and row.get("status") == "pending"
+        and row.get("expires_at")
+        and row["expires_at"] <= datetime.now(timezone.utc).replace(tzinfo=None)
+    ):
+        row["status"] = "expired"
     return row
 
 
@@ -122,14 +129,15 @@ def complete_run(connection, run_id: int, output: dict, actor_id: int) -> dict:
             cursor.execute(
                 """
                 INSERT INTO agent_action_proposals(
-                    ai_run_id, idempotency_key, action_type, action_payload, created_by
-                ) VALUES (%s, %s, %s, %s, %s)
+                    ai_run_id, idempotency_key, action_type, action_payload, expires_at, created_by
+                ) VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
                     run_id,
                     f"agent-proposal-{run_id}-{index}-{candidate['action_payload']['source_id']}",
                     candidate["action_type"],
                     json.dumps(candidate["action_payload"], ensure_ascii=False, default=str),
+                    datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24),
                     actor_id,
                 ),
             )
@@ -193,6 +201,10 @@ class ActionProposalConflict(ValueError):
     pass
 
 
+class ActionProposalExpired(ActionProposalConflict):
+    pass
+
+
 def review_action_proposal(
     connection,
     proposal_id: int,
@@ -206,12 +218,35 @@ def review_action_proposal(
             "SELECT * FROM agent_action_proposals WHERE id = %s FOR UPDATE",
             (proposal_id,),
         )
-        proposal = _decode_proposal(cursor.fetchone())
+        proposal = cursor.fetchone()
         if proposal is None:
             raise LookupError("Action proposal not found")
         if proposal["status"] != "pending":
             raise ActionProposalConflict("Action proposal has already been reviewed")
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if proposal["expires_at"] <= now:
+            cursor.execute(
+                """
+                UPDATE agent_action_proposals
+                SET status = 'expired', reviewed_at = %s
+                WHERE id = %s
+                """,
+                (now, proposal_id),
+            )
+            cursor.execute(
+                """
+                INSERT INTO audit_logs(actor_id, entity_type, entity_id, action, after_data)
+                VALUES (%s, 'agent_action_proposal', %s, 'expired', %s)
+                """,
+                (
+                    actor_id,
+                    str(proposal_id),
+                    json.dumps({"expired_at": now.isoformat()}, ensure_ascii=False),
+                ),
+            )
+            connection.commit()
+            raise ActionProposalExpired("Action proposal has expired")
+        proposal = _decode_proposal(proposal)
         if decision == "rejected":
             cursor.execute(
                 """
@@ -290,6 +325,8 @@ def review_action_proposal(
         reviewed = _get_proposal(connection, proposal_id, cursor=cursor)
         connection.commit()
         return reviewed
+    except ActionProposalExpired:
+        raise
     except Exception:
         connection.rollback()
         raise
