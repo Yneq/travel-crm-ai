@@ -33,7 +33,8 @@ contracts and operational data before introducing model-driven automation.
 - Privacy-safe communication templates and immutable content-version snapshots
 - Versioned six-case AI regression set covering schema, guardrails, privacy,
   unsafe operational claims, and latency
-- Audit logs for CRM mutations
+- Admin-only Audit Log dashboard with actor/entity/action/date filters, pagination,
+  before/after details, and recursive credential redaction
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -111,9 +112,17 @@ an authenticated admin.
 | Active communication templates | `GET` | `/api/communication-templates` |
 | Apply a template as a new draft version | `POST` | `/api/communication-drafts/{draft_id}/templates/{template_id}` |
 | Communication content history | `GET` | `/api/communication-drafts/{draft_id}/versions` |
+| Filtered, paginated audit history (admin only) | `GET` | `/api/audit-logs` |
+| Audit filter facets (admin only) | `GET` | `/api/audit-logs/facets` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
+
+Audit history is read-only and restricted to `admin`. Queries support exact
+entity type, entity ID, action, actor, date range, limit, and offset filters.
+The API joins staff names for traceability and recursively replaces password,
+token, secret, API-key, and authorization fields with `[REDACTED]` before data
+reaches the browser.
 
 ## Workflow rules
 
@@ -334,10 +343,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **50 automated tests**.
+The current suite passes **51 automated tests**.
 
 ## Next milestone
 
 1. Expand evaluation fixtures and compare model/Prompt versions
-2. Add template management and approval-policy administration
+2. Add staff-account and approval-policy administration
 3. Production communication/payment adapters, monitoring, and secret management

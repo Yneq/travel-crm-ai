@@ -16,6 +16,9 @@ const state = {
   paymentsByOrder: {},
   aiPlans: [],
   aiProviderStatus: null,
+  auditPage: { items: [], total: 0, limit: 50, offset: 0 },
+  auditFacets: { entity_types: [], actions: [], actors: [] },
+  auditFilters: {},
   selectedTripId: null,
   selectedTrip: null,
   taskFilter: "active",
@@ -191,6 +194,7 @@ async function bootApp() {
     $("#user-name").textContent = state.user.name;
     $("#user-role").textContent = state.user.role;
     $("#user-initial").textContent = state.user.name.slice(0, 1).toUpperCase();
+    $$('.nav-item[data-admin-only]').forEach((element) => element.classList.toggle("hidden", state.user.role !== "admin"));
     await loadData();
   } catch (error) {
     logout();
@@ -231,6 +235,15 @@ async function loadData() {
       state.requests.map((request) => api(`/api/travel-requests/${request.id}/ai-plans`))
     );
     state.aiPlans = aiPlanLists.flat().sort((a, b) => b.id - a.id);
+    if (state.user.role === "admin") {
+      [state.auditPage, state.auditFacets] = await Promise.all([
+        api(buildAuditPath(state.auditPage.offset || 0)),
+        api("/api/audit-logs/facets"),
+      ]);
+    } else {
+      state.auditPage = { items: [], total: 0, limit: 50, offset: 0 };
+      state.auditFacets = { entity_types: [], actions: [], actors: [] };
+    }
     if (!state.selectedTripId && state.trips.length) state.selectedTripId = state.trips[0].id;
     if (state.selectedTripId && state.trips.some((trip) => trip.id === state.selectedTripId)) {
       state.selectedTrip = await api(`/api/trips/${state.selectedTripId}`);
@@ -239,6 +252,24 @@ async function loadData() {
       state.selectedTrip = null;
     }
     renderAll();
+  } finally {
+    setSyncing(false);
+  }
+}
+
+function buildAuditPath(offset = 0) {
+  const parameters = new URLSearchParams({ limit: "50", offset: String(offset) });
+  Object.entries(state.auditFilters).forEach(([key, value]) => {
+    if (value !== "" && value !== null && value !== undefined) parameters.set(key, value);
+  });
+  return `/api/audit-logs?${parameters}`;
+}
+
+async function loadAuditLogs(offset = 0) {
+  setSyncing(true);
+  try {
+    state.auditPage = await api(buildAuditPath(offset));
+    renderAuditLogs();
   } finally {
     setSyncing(false);
   }
@@ -255,6 +286,8 @@ function renderAll() {
   renderTripStudio();
   renderOrders();
   renderAIPlans();
+  renderAuditLogs();
+  populateAuditFilters();
   populateFormOptions();
 }
 
@@ -428,11 +461,46 @@ function populateFormOptions() {
   $("#ai-plan-request").innerHTML = state.requests.map((item) => `<option value="${item.id}">${escapeHtml(item.title)}</option>`).join("") || '<option value="">請先建立需求</option>';
 }
 
+function populateAuditFilters() {
+  if (state.user?.role !== "admin") return;
+  const selected = state.auditFilters;
+  $("#audit-entity-type").innerHTML = `<option value="">全部</option>${state.auditFacets.entity_types.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}`;
+  $("#audit-action").innerHTML = `<option value="">全部</option>${state.auditFacets.actions.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}`;
+  $("#audit-actor").innerHTML = `<option value="">全部</option>${state.auditFacets.actors.map((actor) => `<option value="${actor.id}">${escapeHtml(actor.name)}</option>`).join("")}`;
+  $("#audit-entity-type").value = selected.entity_type || "";
+  $("#audit-action").value = selected.action || "";
+  $("#audit-actor").value = selected.actor_id || "";
+}
+
+function renderAuditData(label, value) {
+  if (!value) return "";
+  return `<div><strong>${label}</strong><pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre></div>`;
+}
+
+function renderAuditLogs() {
+  if (state.user?.role !== "admin") return;
+  const page = state.auditPage;
+  $("#audit-total").textContent = `${page.total} 筆`;
+  $("#audit-log-table").innerHTML = page.items.map((item) => `<tr>
+    <td>${formatDate(item.created_at, true)}</td>
+    <td><strong>${escapeHtml(item.actor_name || "System")}</strong><br><small>${item.actor_id ? `#${item.actor_id}` : "背景程序"}</small></td>
+    <td><span class="audit-entity">${escapeHtml(item.entity_type)}</span><br><small>#${escapeHtml(item.entity_id)}</small></td>
+    <td><span class="audit-action">${escapeHtml(item.action)}</span></td>
+    <td><details class="audit-detail"><summary>檢視變更</summary><div class="audit-json-grid">${renderAuditData("Before", item.before_data)}${renderAuditData("After", item.after_data) || '<div class="muted">沒有內容快照</div>'}</div>${item.correlation_id ? `<small>Correlation ID：${escapeHtml(item.correlation_id)}</small>` : ""}</details></td>
+  </tr>`).join("");
+  $("#audit-empty").classList.toggle("hidden", page.items.length > 0);
+  const currentPage = Math.floor(page.offset / page.limit) + 1;
+  const pageCount = Math.max(1, Math.ceil(page.total / page.limit));
+  $("#audit-page-info").textContent = `第 ${currentPage} / ${pageCount} 頁`;
+  $("#audit-prev").disabled = page.offset === 0;
+  $("#audit-next").disabled = page.offset + page.limit >= page.total;
+}
+
 function showSection(section) {
   $$(".workspace-section").forEach((element) => element.classList.add("hidden"));
   $(`#section-${section}`).classList.remove("hidden");
   $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.section === section));
-  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務" })[section];
+  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務", audit: "Audit Log" })[section];
 }
 
 function tripStatusOptions(trip) {
@@ -602,6 +670,39 @@ $$('[data-dialog]').forEach((button) => button.addEventListener("click", () => {
 $$('.close-dialog').forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
 $$('.nav-item').forEach((button) => button.addEventListener("click", () => showSection(button.dataset.section)));
 $$('.section-link').forEach((button) => button.addEventListener("click", () => showSection(button.dataset.target)));
+
+$("#audit-filter-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(event.currentTarget));
+  state.auditFilters = Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== "")
+  );
+  try {
+    await loadAuditLogs(0);
+    showSection("audit");
+  } catch (error) { showToast(error.message, true); }
+});
+
+$("#audit-reset").addEventListener("click", async () => {
+  $("#audit-filter-form").reset();
+  state.auditFilters = {};
+  try {
+    await loadAuditLogs(0);
+    showSection("audit");
+  } catch (error) { showToast(error.message, true); }
+});
+
+$("#audit-prev").addEventListener("click", async () => {
+  try {
+    await loadAuditLogs(Math.max(0, state.auditPage.offset - state.auditPage.limit));
+  } catch (error) { showToast(error.message, true); }
+});
+
+$("#audit-next").addEventListener("click", async () => {
+  try {
+    await loadAuditLogs(state.auditPage.offset + state.auditPage.limit);
+  } catch (error) { showToast(error.message, true); }
+});
 
 $("#member-form").addEventListener("submit", async (event) => {
   event.preventDefault();

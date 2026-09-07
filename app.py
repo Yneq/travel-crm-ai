@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from controllers import (
     ai_controller,
+    audit_controller,
     communication_controller,
     crm_controller,
     operations_controller,
@@ -66,3 +67,4 @@ app.include_router(ai_controller.router)
 app.include_router(reminder_controller.router)
 app.include_router(operations_controller.router)
 app.include_router(communication_controller.router)
+app.include_router(audit_controller.router)

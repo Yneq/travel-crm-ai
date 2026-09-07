@@ -29,7 +29,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
   並提供具 Idempotency 的本機 Mock Email
 - 具隱私 Allowlist 的通訊範本與不可變內容版本快照
 - 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
-- CRM 寫入操作的 Audit Log
+- 限 Admin 使用的 Audit Log 儀表板：支援操作人／資源／動作／日期篩選、分頁、
+  Before／After 明細及遞迴敏感憑證遮蔽
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
@@ -103,9 +104,15 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 取得啟用中的通訊範本 | `GET` | `/api/communication-templates` |
 | 套用範本並建立新版本 | `POST` | `/api/communication-drafts/{draft_id}/templates/{template_id}` |
 | 查詢通訊內容版本歷史 | `GET` | `/api/communication-drafts/{draft_id}/versions` |
+| 篩選及分頁查詢 Audit Log（限管理員） | `GET` | `/api/audit-logs` |
+| Audit Log 篩選選項（限管理員） | `GET` | `/api/audit-logs/facets` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
+
+Audit Log 是唯讀資源，且只允許 `admin` 查詢。API 支援依資源類型、資源 ID、
+操作、操作人、日期範圍、Limit 與 Offset 篩選，並連結員工姓名以利追溯。
+回傳瀏覽器前會遞迴遮蔽 password、token、secret、API key 與 authorization 欄位。
 
 ## Workflow 規則
 
@@ -296,10 +303,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **50 項自動測試**。
+目前共通過 **51 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 加入 Template 管理與核准政策設定
+2. 加入員工帳號與核准政策管理
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

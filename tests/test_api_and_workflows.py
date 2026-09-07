@@ -47,6 +47,7 @@ from services.workflow import (
     ensure_reminder_transition,
     ensure_communication_transition,
 )
+from repositories.audit_repository import redact_audit_data
 
 
 class ApiContractTests(unittest.TestCase):
@@ -116,6 +117,8 @@ class ApiContractTests(unittest.TestCase):
             ("/api/communication-templates", "get"),
             ("/api/communication-drafts/{draft_id}/versions", "get"),
             ("/api/communication-drafts/{draft_id}/templates/{template_id}", "post"),
+            ("/api/audit-logs", "get"),
+            ("/api/audit-logs/facets", "get"),
         }
 
         for path, method in expected:
@@ -140,6 +143,16 @@ class SecurityTests(unittest.TestCase):
         payload = dependencies.decode_access_token(token)
         self.assertEqual(42, payload["id"])
         self.assertEqual("advisor", payload["role"])
+
+    def test_audit_output_redacts_nested_credentials(self):
+        data = redact_audit_data({
+            "email": "allowed@example.com",
+            "auth": {"access_token": "secret-token", "items": [{"api_key": "key"}]},
+        })
+
+        self.assertEqual("allowed@example.com", data["email"])
+        self.assertEqual("[REDACTED]", data["auth"]["access_token"])
+        self.assertEqual("[REDACTED]", data["auth"]["items"][0]["api_key"])
 
 
 class WorkflowTests(unittest.TestCase):
