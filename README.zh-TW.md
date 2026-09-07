@@ -32,7 +32,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 限 Admin 使用的 Audit Log 儀表板：支援操作人／資源／動作／日期篩選、分頁、
   Before／After 明細及遞迴敏感憑證遮蔽
 - LangGraph CRM Operations Agent：依問題選擇多個唯讀工具、逐步執行、產生有資料
-  依據的回答與節點 Trace，並由 Human-in-the-loop Guardrail 禁止直接執行外部動作
+  依據的回答與節點 Trace，支援 Gemini Function Calling 與本機 Fallback，並由
+  Human-in-the-loop Guardrail 禁止直接執行外部動作
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
@@ -180,6 +181,7 @@ Transaction 中建立一般行程並把建議項目寫入 `trip_items`；退回�
 
 ```dotenv
 AI_PLANNING_PROVIDER=gemini
+AI_OPERATIONS_PROVIDER=gemini
 GEMINI_API_KEY=replace-with-your-key
 GEMINI_MODEL=gemini-3.8-flash
 GEMINI_FALLBACK_MODEL=gemini-3.5-flash-lite
@@ -202,6 +204,17 @@ Provider 每次嘗試只送出一個 Structured Output 請求。遇到暫時性�
 隱私 Allowlist 只會傳送旅客姓名／等級／Locale、行程資訊與旅遊偏好，不會傳送
 Email 或電話。免費額度可能允許 Google 使用提交內容改善產品，因此測試時不可
 使用真實客戶資料，上線前也必須重新檢查資料處理條款。
+
+## CRM Operations Agent
+
+Operations Copilot 僅開放四個 Allowlist 唯讀函式：營運數量總覽、到期任務、
+待付款追蹤及近期出發。Gemini 3.8 Flash 負責選擇及組合函式，只會收到這些查詢
+回傳的有限營運欄位；工具集中沒有寫入、付款、預訂或通訊函式。
+
+每次執行都會在 `ai_runs` 保存實際 Provider、工具、結果數量與 LangGraph Trace，
+並把不含憑證的摘要寫入 Audit Log。模型若產生已執行外部動作的危險宣稱會被拒絕。
+可用性依序降級為 Gemini 3.8 Flash、Gemini 3.5 Flash Lite、本機 Deterministic
+LangGraph Router，因此外部模型暫時失效時仍可查詢核心營運資料。
 
 ## AI Follow-up Copilot
 
@@ -311,10 +324,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **59 項自動測試**。
+目前共通過 **62 項自動測試**。
 
 ## 下一階段
 
-1. 在可預測的本機 Fallback 前加入 Model-assisted Tool Selection
-2. 擴充 Agent Evaluation Fixtures，並比較不同 Model／Prompt 版本
+1. 擴充 Agent Evaluation Fixtures，並比較不同 Model／Prompt 版本
+2. 為特定 Agent 動作加入明確的人工核准 Write Proposal
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

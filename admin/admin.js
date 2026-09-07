@@ -317,7 +317,7 @@ function renderOperationsAgent() {
     return;
   }
   container.innerHTML = `
-    <div class="agent-result-heading"><div><p class="eyebrow">EVIDENCE-BACKED RESPONSE</p><h2>營運建議</h2></div><div class="agent-run-id"><strong>Run #${run.run_id}</strong><small>${run.node_trace.length} 個步驟</small></div></div>
+    <div class="agent-result-heading"><div><p class="eyebrow">EVIDENCE-BACKED RESPONSE</p><h2>營運建議</h2></div><div class="agent-run-id"><strong>Run #${run.run_id}</strong><small>${escapeHtml(run.provider)} · ${run.node_trace.length} 個步驟${run.fallback_used ? " · fallback" : ""}</small></div></div>
     <div class="agent-answer">${escapeHtml(run.answer).replaceAll("\n", "<br>")}</div>
     <div class="agent-tools"><strong>使用的唯讀工具</strong><div>${run.tools_used.map((tool) => `<span><b>${escapeHtml(tool.label)}</b><small>${tool.result_count} 筆結果</small></span>`).join("")}</div></div>
     <div class="agent-guardrail"><strong>✓ Human-in-the-loop</strong><p>${escapeHtml(run.guardrails.note)}</p></div>

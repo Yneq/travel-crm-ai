@@ -17,4 +17,5 @@ class OperationsAgentResponse(BaseModel):
     tools_used: list[ToolExecution]
     node_trace: list[str]
     guardrails: dict
-
+    provider: str
+    fallback_used: bool

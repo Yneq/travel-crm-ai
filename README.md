@@ -36,7 +36,8 @@ operational data with guarded model-driven automation.
 - Admin-only Audit Log dashboard with actor/entity/action/date filters, pagination,
   before/after details, and recursive credential redaction
 - LangGraph CRM Operations Agent with intent routing, a multi-step read-only tool
-  loop, evidence-backed answers, execution traces, and human-in-the-loop guardrails
+  loop, Gemini Function Calling, deterministic fallback, execution traces, and
+  human-in-the-loop guardrails
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -197,6 +198,7 @@ the project `.env` file (never commit the real key):
 
 ```dotenv
 AI_PLANNING_PROVIDER=gemini
+AI_OPERATIONS_PROVIDER=gemini
 GEMINI_API_KEY=replace-with-your-key
 GEMINI_MODEL=gemini-3.8-flash
 GEMINI_FALLBACK_MODEL=gemini-3.5-flash-lite
@@ -228,6 +230,20 @@ privacy allowlist transmits only traveler name/tier/locale, trip details, and
 travel preferences. It does not transmit member email or phone. The free tier
 may use submitted content to improve Google products, so do not use real client
 data during testing and reassess the data-processing terms before production.
+
+## CRM Operations Agent
+
+The Operations Copilot exposes four allowlisted, read-only functions: operational
+counts, due tasks, pending-payment follow-ups, and upcoming departures. Gemini
+3.8 Flash selects and composes these functions; it receives only the limited
+business fields returned by those queries. The model cannot call write, payment,
+booking, or communication functions.
+
+Every run stores its provider, selected tools, result counts, and LangGraph trace
+in `ai_runs`, with a credential-safe summary in the Audit Log. Unsafe external-
+action claims fail validation. Availability degrades from Gemini 3.8 Flash to
+Gemini 3.5 Flash Lite and then to the deterministic local LangGraph router, so an
+LLM outage does not remove access to core operational data.
 
 ## AI Follow-up Copilot
 
@@ -352,10 +368,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **59 automated tests**.
+The current suite passes **62 automated tests**.
 
 ## Next milestone
 
-1. Add model-assisted tool selection behind the deterministic Agent fallback
-2. Expand Agent evaluation fixtures and compare model/prompt versions
+1. Expand Agent evaluation fixtures and compare model/prompt versions
+2. Add explicit human-approved write proposals for selected Agent actions
 3. Production communication/payment adapters, monitoring, and secret management

@@ -101,15 +101,18 @@ def complete_run(connection, run_id: int, output: dict, actor_id: int) -> None:
     try:
         safe_audit_payload = {
             "tools_used": [item["tool"] for item in output["tools_used"]],
+            "provider": output["provider"],
+            "fallback_used": output["fallback_used"],
             "requires_human_confirmation": True,
         }
         cursor.execute(
             """
             UPDATE ai_runs
-            SET status = 'completed', output_data = %s, completed_at = %s
+            SET status = 'completed', model_name = %s, output_data = %s, completed_at = %s
             WHERE id = %s
             """,
             (
+                output["provider"],
                 json.dumps(output, ensure_ascii=False, default=str),
                 datetime.now(timezone.utc).replace(tzinfo=None),
                 run_id,

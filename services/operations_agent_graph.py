@@ -4,6 +4,7 @@ from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from repositories.operations_agent_repository import TOOL_LABELS
+from services.operations_agent_provider import get_operations_agent_provider
 
 
 class OperationsAgentState(TypedDict, total=False):
@@ -131,4 +132,51 @@ def run_operations_agent(question: str, execute_tool: Callable[[str], dict]) -> 
         "tools_used": tools_used,
         "node_trace": result["node_trace"],
         "guardrails": result["guardrails"],
+        "provider": "langgraph-local",
+        "fallback_used": False,
     }
+
+
+def run_operations_agent_with_fallback(
+    question: str,
+    execute_tool: Callable[[str], dict],
+    provider_name: str,
+    provider=None,
+) -> dict:
+    if provider_name != "gemini":
+        return run_operations_agent(question, execute_tool)
+    try:
+        active_provider = provider or get_operations_agent_provider(provider_name)
+        model_result = active_provider.run(question, execute_tool)
+        tool_results = model_result["tool_results"]
+        output = {
+            "answer": model_result["answer"],
+            "tools_used": [
+                {
+                    "tool": item["tool"],
+                    "label": TOOL_LABELS[item["tool"]],
+                    "result_count": len(item["result"].get("items", []))
+                    if item["tool"] != "operations_overview" else 1,
+                }
+                for item in tool_results
+            ],
+            "node_trace": [
+                "model_route_intent",
+                *[f"function_call:{item['tool']}" for item in tool_results],
+                "model_synthesize_evidence",
+                "enforce_read_only_guardrail",
+            ],
+            "guardrails": {
+                "read_only_tools": True,
+                "requires_human_confirmation": True,
+                "external_actions_executed": False,
+                "note": "Gemini 只能呼叫唯讀 CRM 工具，不會自行建立訂單、付款或發送訊息。",
+            },
+            "provider": model_result["provider"],
+            "fallback_used": model_result.get("fallback_used", False),
+        }
+        return output
+    except Exception:
+        output = run_operations_agent(question, execute_tool)
+        output["fallback_used"] = True
+        return output

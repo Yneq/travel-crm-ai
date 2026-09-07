@@ -19,7 +19,15 @@ from services.payment_provider import get_payment_provider
 from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
 from services.staff_policy import StaffPolicyConflict, ensure_staff_change_allowed
-from services.operations_agent_graph import run_operations_agent, select_tools
+from services.operations_agent_graph import (
+    run_operations_agent,
+    run_operations_agent_with_fallback,
+    select_tools,
+)
+from services.operations_agent_provider import (
+    OperationsAgentProviderError,
+    validate_model_answer,
+)
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
@@ -260,6 +268,45 @@ class OperationsAgentTests(unittest.TestCase):
         self.assertTrue(result["guardrails"]["read_only_tools"])
         self.assertFalse(result["guardrails"]["external_actions_executed"])
         self.assertIn("tool:operations_overview", result["node_trace"])
+
+    def test_model_provider_tool_calls_are_exposed(self):
+        provider = MagicMock()
+        provider.run.return_value = {
+            "answer": "目前有一筆待付款訂單，請由人員確認。",
+            "tool_results": [
+                {"tool": "payment_followups", "result": {"items": [{"id": 9}]}}
+            ],
+            "provider": "gemini:test-model",
+        }
+
+        result = run_operations_agent_with_fallback(
+            "有哪些待付款？", lambda _tool: {}, "gemini", provider=provider
+        )
+
+        self.assertEqual("gemini:test-model", result["provider"])
+        self.assertFalse(result["fallback_used"])
+        self.assertEqual("payment_followups", result["tools_used"][0]["tool"])
+
+    def test_model_failure_uses_deterministic_fallback(self):
+        provider = MagicMock()
+        provider.run.side_effect = OperationsAgentProviderError("offline")
+
+        result = run_operations_agent_with_fallback(
+            "給我營運總覽",
+            lambda _tool: {"summary": {
+                "active_members": 0, "active_requests": 0, "open_tasks": 0,
+                "pending_payments": 0, "scheduled_reminders": 0,
+            }, "items": []},
+            "gemini",
+            provider=provider,
+        )
+
+        self.assertEqual("langgraph-local", result["provider"])
+        self.assertTrue(result["fallback_used"])
+
+    def test_unsafe_model_action_claim_is_rejected(self):
+        with self.assertRaises(OperationsAgentProviderError):
+            validate_model_answer("已替你付款，訂單處理完成。")
 
 
 class WorkflowTests(unittest.TestCase):
