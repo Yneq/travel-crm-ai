@@ -1,6 +1,7 @@
 from models.crm import QuoteStatus, TaskStatus, TravelRequestStatus, TripStatus
 from models.payment import OrderStatus, PaymentStatus
 from models.reminder import ReminderStatus
+from models.communication import CommunicationStatus
 
 
 TRAVEL_REQUEST_TRANSITIONS = {
@@ -71,6 +72,12 @@ REMINDER_TRANSITIONS = {
     ReminderStatus.DISMISSED: set(),
 }
 
+COMMUNICATION_TRANSITIONS = {
+    CommunicationStatus.DRAFT: {CommunicationStatus.APPROVED},
+    CommunicationStatus.APPROVED: {CommunicationStatus.DRAFT, CommunicationStatus.SENT},
+    CommunicationStatus.SENT: set(),
+}
+
 
 class InvalidTransition(ValueError):
     pass
@@ -130,3 +137,11 @@ def ensure_reminder_transition(current: str, target: ReminderStatus) -> None:
         return
     if target not in REMINDER_TRANSITIONS[current_status]:
         raise InvalidTransition(f"Cannot change reminder from {current_status} to {target}")
+
+
+def ensure_communication_transition(current: str, target: CommunicationStatus) -> None:
+    current_status = CommunicationStatus(current)
+    if target == current_status:
+        return
+    if target not in COMMUNICATION_TRANSITIONS[current_status]:
+        raise InvalidTransition(f"Cannot change communication from {current_status} to {target}")

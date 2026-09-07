@@ -5,6 +5,7 @@ const state = {
   requests: [],
   tasks: [],
   reminders: [],
+  communicationDrafts: [],
   jobs: [],
   workerStatus: null,
   trips: [],
@@ -75,6 +76,7 @@ const labels = {
   task_due: "任務期限", payment_follow_up: "付款追蹤", trip_countdown: "出發確認",
   retrying: "等待重試", dead_letter: "需人工介入",
   operational_reminder_scan: "營運提醒掃描",
+  sent: "Mock 已寄送",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -190,11 +192,12 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
       api("/api/reminders?limit=100"),
+      api("/api/communication-drafts?limit=100"),
       api("/api/operations/jobs?limit=20"),
       api("/api/operations/worker/status"),
       api("/api/trips"),
@@ -339,6 +342,14 @@ function renderReminders() {
   $("#reminder-board").innerHTML = state.reminders.length ? state.reminders.map((item) => {
     const payload = item.payload || {};
     const draft = item.ai_draft;
+    const communication = state.communicationDrafts.find((candidate) => candidate.reminder_id === item.id);
+    const communicationPanel = communication ? `<form class="communication-editor" data-communication-form="${communication.id}">
+      <div class="communication-heading"><div><strong>Mock Email 草稿</strong><small>${escapeHtml(communication.recipient_label)} · v${communication.version}</small></div><span class="status-badge ${escapeHtml(communication.status)}">${escapeHtml(labels[communication.status] || communication.status)}</span></div>
+      <label>主旨<input name="subject" value="${escapeHtml(communication.subject)}" maxlength="160" required ${communication.status === "sent" ? "readonly" : ""} /></label>
+      <label>內容<textarea name="body" rows="5" maxlength="5000" required ${communication.status === "sent" ? "readonly" : ""}>${escapeHtml(communication.body)}</textarea></label>
+      <small>Mock Provider 不會連外，也不會使用真實 Email 地址。</small>
+      <footer>${communication.status !== "sent" ? `<button class="button ghost compact" type="submit">儲存修改</button>` : ""}${communication.status === "draft" ? `<button class="button primary compact" type="button" data-approve-communication="${communication.id}">核准 Mock 寄送</button>` : ""}${communication.status === "approved" ? `<button class="button primary compact" type="button" data-send-communication="${communication.id}">執行 Mock Send</button>` : ""}</footer>
+    </form>` : (item.ai_draft_status === "approved" ? `<button class="button ghost compact" type="button" data-create-communication="${item.id}">建立可編輯 Mock Email 草稿</button>` : "");
     const draftPanel = draft ? `<details class="ai-followup" open>
       <summary><span>✦ AI Follow-up Copilot</span><span class="status-badge ${escapeHtml(item.ai_draft_status)}">${escapeHtml(labels[item.ai_draft_status] || item.ai_draft_status)}</span></summary>
       <div class="ai-followup-body">
@@ -347,6 +358,7 @@ function renderReminders() {
         <div><strong>建議步驟</strong><ol>${(draft.recommended_steps || []).map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol></div>
         <div class="message-draft"><small>聯絡草稿 · 尚未寄送</small><strong>${escapeHtml(draft.message_subject)}</strong><p>${escapeHtml(draft.message_body)}</p></div>
         ${item.ai_draft_status === "awaiting_review" ? `<footer><button class="button primary compact" data-review-followup="${item.id}" data-decision="approve">核准供顧問使用</button><button class="button ghost compact" data-review-followup="${item.id}" data-decision="reject">退回草稿</button></footer>` : `<small>此狀態只記錄人工判斷，不會觸發寄送。</small>`}
+        ${communicationPanel}
       </div>
     </details>` : (item.status === "scheduled" ? `<button class="button ghost compact ai-draft-button" data-generate-followup="${item.id}">✦ 產生 AI 跟進草稿</button>` : "");
     return `<article class="panel reminder-card ${escapeHtml(payload.severity || "normal")}">
@@ -745,6 +757,36 @@ $("#scan-reminders-button").addEventListener("click", async (event) => {
 });
 
 $("#reminder-board").addEventListener("click", async (event) => {
+  const createCommunication = event.target.closest("[data-create-communication]");
+  const approveCommunication = event.target.closest("[data-approve-communication]");
+  const sendCommunication = event.target.closest("[data-send-communication]");
+  if (createCommunication) {
+    createCommunication.disabled = true;
+    try {
+      await api(`/api/reminders/${createCommunication.dataset.createCommunication}/communication-draft`, { method: "POST" });
+      await loadData(); showSection("reminders"); showToast("可編輯 Mock Email 草稿已建立");
+    } catch (error) { createCommunication.disabled = false; showToast(error.message, true); }
+    return;
+  }
+  if (approveCommunication) {
+    approveCommunication.disabled = true;
+    try {
+      await api(`/api/communication-drafts/${approveCommunication.dataset.approveCommunication}/approve`, { method: "POST" });
+      await loadData(); showSection("reminders"); showToast("通訊草稿已核准；尚未執行 Mock Send");
+    } catch (error) { approveCommunication.disabled = false; showToast(error.message, true); }
+    return;
+  }
+  if (sendCommunication) {
+    sendCommunication.disabled = true;
+    try {
+      await api(`/api/communication-drafts/${sendCommunication.dataset.sendCommunication}/send`, {
+        method: "POST",
+        headers: { "Idempotency-Key": `mock-send-${sendCommunication.dataset.sendCommunication}` },
+      });
+      await loadData(); showSection("reminders"); showToast("Mock Send 完成；未連線至外部 Email 服務");
+    } catch (error) { sendCommunication.disabled = false; showToast(error.message, true); }
+    return;
+  }
   const generateButton = event.target.closest("[data-generate-followup]");
   const reviewButton = event.target.closest("[data-review-followup]");
   if (generateButton) {
@@ -785,6 +827,22 @@ $("#reminder-board").addEventListener("click", async (event) => {
     button.disabled = false;
     showToast(error.message, true);
   }
+});
+
+$("#reminder-board").addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-communication-form]");
+  if (!form) return;
+  event.preventDefault();
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  const values = Object.fromEntries(new FormData(form));
+  try {
+    await api(`/api/communication-drafts/${form.dataset.communicationForm}`, {
+      method: "PATCH",
+      body: JSON.stringify({ subject: values.subject, body: values.body }),
+    });
+    await loadData(); showSection("reminders"); showToast("修改已儲存；如曾核准，核准狀態已重設");
+  } catch (error) { submit.disabled = false; showToast(error.message, true); }
 });
 
 $("#job-board").addEventListener("click", async (event) => {

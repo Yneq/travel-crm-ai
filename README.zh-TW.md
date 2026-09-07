@@ -25,6 +25,7 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 內部任務指派與狀態管理
 - 營運提醒中心：偵測即將到期任務、待付款訂單與即將出發行程，並支援防重複與人工處理
 - AI Follow-up Copilot：產生內部摘要、建議步驟與可編輯的旅客聯絡草稿；核准不會自動寄送
+- 版本化通訊草稿：編輯後撤銷核准，並提供具 Idempotency 的本機 Mock Email
 - 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
@@ -92,6 +93,11 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 背景工作紀錄 | `GET` | `/api/operations/jobs` |
 | Worker 與 Queue 狀態 | `GET` | `/api/operations/worker/status` |
 | 重新排程 Dead Letter（限管理員） | `POST` | `/api/operations/jobs/{job_id}/retry` |
+| 通訊草稿列表 | `GET` | `/api/communication-drafts` |
+| 由已核准 AI 輸出建立可編輯草稿 | `POST` | `/api/reminders/{reminder_id}/communication-draft` |
+| 編輯通訊內容並撤銷舊核准 | `PATCH` | `/api/communication-drafts/{draft_id}` |
+| 核准通訊草稿 | `POST` | `/api/communication-drafts/{draft_id}/approve` |
+| 執行具 Idempotency 的 Mock Send | `POST` | `/api/communication-drafts/{draft_id}/send` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -190,6 +196,19 @@ Email 或電話。免費額度可能允許 Google 使用提交內容改善產品
 SMS 或任何其他旅客通知。外部模型重試後仍無法使用時，流程會產生清楚標示的
 本機 Fallback 草稿，避免營運工作完全中斷。
 
+## 通訊草稿核准流程
+
+已核准的 AI Follow-up 可以建立另一份獨立版本化的通訊草稿：
+
+```text
+AI 輸出核准 → 可編輯通訊草稿 → 寄送核准 → Mock Send
+```
+
+修改主旨或內容會增加版本並撤銷先前的寄送核准。`draft` 不能直接寄送，`sent`
+紀錄也不能再編輯。Mock Send 必須提供 `Idempotency-Key`；重送相同 Key 會取得
+原結果，不同 Key 也不能讓同一草稿寄送兩次。`MockEmailProvider` 不會建立任何
+網路連線，只保存本機模擬收據，也不會使用真實 Email 地址。
+
 ## AI Regression Evaluation
 
 執行不會呼叫外部 API、可重現的本機 Baseline：
@@ -265,10 +284,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **42 項自動測試**。
+目前共通過 **45 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 加入可編輯聯絡草稿與明確的寄送核准
+2. 加入角色分離的核准政策與通訊 Template 歷史
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

@@ -39,6 +39,7 @@ class SchemaContractTests(unittest.TestCase):
             "reminders",
             "ai_runs",
             "integration_events",
+            "communication_drafts",
             "audit_logs",
         }
 
@@ -63,6 +64,12 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("uk_reminders_ai_idempotency", self.migration)
         self.assertIn("ai_draft_status", self.migration)
         self.assertIn("ai_reviewed_by", self.migration)
+
+    def test_communication_drafts_require_review_and_idempotent_send(self):
+        self.assertIn("uk_communication_reminder", self.migration)
+        self.assertIn("uk_communication_send_idempotency", self.migration)
+        self.assertIn("approved_by", self.migration)
+        self.assertIn("provider_message_id", self.migration)
 
 
 if __name__ == "__main__":

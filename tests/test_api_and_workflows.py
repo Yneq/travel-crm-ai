@@ -14,7 +14,9 @@ from app import app
 from models.crm import QuoteStatus, TaskStatus, TravelRequestStatus, TripStatus
 from models.payment import OrderStatus, PaymentStatus
 from models.reminder import ReminderStatus
+from models.communication import CommunicationStatus
 from services.payment_provider import get_payment_provider
+from services.communication_provider import get_communication_provider
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
 from services.followup_provider import (
@@ -41,6 +43,7 @@ from services.workflow import (
     ensure_trip_transition,
     ensure_quote_transition,
     ensure_reminder_transition,
+    ensure_communication_transition,
 )
 
 
@@ -103,6 +106,11 @@ class ApiContractTests(unittest.TestCase):
             ("/api/operations/jobs", "get"),
             ("/api/operations/worker/status", "get"),
             ("/api/operations/jobs/{job_id}/retry", "post"),
+            ("/api/communication-drafts", "get"),
+            ("/api/reminders/{reminder_id}/communication-draft", "post"),
+            ("/api/communication-drafts/{draft_id}", "patch"),
+            ("/api/communication-drafts/{draft_id}/approve", "post"),
+            ("/api/communication-drafts/{draft_id}/send", "post"),
         }
 
         for path, method in expected:
@@ -169,6 +177,14 @@ class WorkflowTests(unittest.TestCase):
         ensure_reminder_transition("scheduled", ReminderStatus.DISMISSED)
         with self.assertRaises(InvalidTransition):
             ensure_reminder_transition("acknowledged", ReminderStatus.DISMISSED)
+
+    def test_communication_requires_approval_before_send(self):
+        ensure_communication_transition("draft", CommunicationStatus.APPROVED)
+        ensure_communication_transition("approved", CommunicationStatus.SENT)
+        with self.assertRaises(InvalidTransition):
+            ensure_communication_transition("draft", CommunicationStatus.SENT)
+        with self.assertRaises(InvalidTransition):
+            ensure_communication_transition("sent", CommunicationStatus.DRAFT)
 
 
 class ReminderRuleTests(unittest.TestCase):
@@ -251,6 +267,15 @@ class PaymentProviderTests(unittest.TestCase):
     def test_unknown_provider_is_rejected(self):
         with self.assertRaises(ValueError):
             get_payment_provider("unknown")
+
+    def test_mock_email_never_uses_network_delivery(self):
+        delivery = get_communication_provider("mock-email").send(
+            "Demo Traveler", "行程確認", "這是本機測試草稿"
+        )
+
+        self.assertTrue(delivery.provider_message_id.startswith("mock_msg_"))
+        self.assertFalse(delivery.payload["network_delivery"])
+        self.assertEqual("local-simulation", delivery.payload["mode"])
 
 
 class QuotePdfTests(unittest.TestCase):
