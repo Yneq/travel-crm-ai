@@ -343,12 +343,20 @@ function renderReminders() {
     const payload = item.payload || {};
     const draft = item.ai_draft;
     const communication = state.communicationDrafts.find((candidate) => candidate.reminder_id === item.id);
+    const canEditCommunication = communication && communication.status !== "sent" && ["admin", "advisor"].includes(state.user.role);
+    const canApproveCommunication = communication && communication.status === "draft" && state.user.role === "admin" && state.user.id !== communication.last_edited_by;
+    const approvalHint = communication?.status === "draft"
+      ? (state.user.id === communication.last_edited_by
+        ? "等待另一位 Admin 核准（建立者／最後編輯者不可自行核准）"
+        : state.user.role !== "admin" ? "等待 Admin 核准" : "可由目前 Admin 獨立核准")
+      : "";
     const communicationPanel = communication ? `<form class="communication-editor" data-communication-form="${communication.id}">
       <div class="communication-heading"><div><strong>Mock Email 草稿</strong><small>${escapeHtml(communication.recipient_label)} · v${communication.version}</small></div><span class="status-badge ${escapeHtml(communication.status)}">${escapeHtml(labels[communication.status] || communication.status)}</span></div>
-      <label>主旨<input name="subject" value="${escapeHtml(communication.subject)}" maxlength="160" required ${communication.status === "sent" ? "readonly" : ""} /></label>
-      <label>內容<textarea name="body" rows="5" maxlength="5000" required ${communication.status === "sent" ? "readonly" : ""}>${escapeHtml(communication.body)}</textarea></label>
-      <small>Mock Provider 不會連外，也不會使用真實 Email 地址。</small>
-      <footer>${communication.status !== "sent" ? `<button class="button ghost compact" type="submit">儲存修改</button>` : ""}${communication.status === "draft" ? `<button class="button primary compact" type="button" data-approve-communication="${communication.id}">核准 Mock 寄送</button>` : ""}${communication.status === "approved" ? `<button class="button primary compact" type="button" data-send-communication="${communication.id}">執行 Mock Send</button>` : ""}</footer>
+      <label>主旨<input name="subject" value="${escapeHtml(communication.subject)}" maxlength="160" required ${canEditCommunication ? "" : "readonly"} /></label>
+      <label>內容<textarea name="body" rows="5" maxlength="5000" required ${canEditCommunication ? "" : "readonly"}>${escapeHtml(communication.body)}</textarea></label>
+      <small>建立：${escapeHtml(communication.created_by_name)} · 最後編輯：${escapeHtml(communication.last_edited_by_name)}${communication.approved_by_name ? ` · 核准：${escapeHtml(communication.approved_by_name)}` : ""}${communication.sent_by_name ? ` · 寄送：${escapeHtml(communication.sent_by_name)}` : ""}</small>
+      <small>${escapeHtml(approvalHint || "Mock Provider 不會連外，也不會使用真實 Email 地址。")}</small>
+      <footer>${canEditCommunication ? `<button class="button ghost compact" type="submit">儲存修改</button>` : ""}${canApproveCommunication ? `<button class="button primary compact" type="button" data-approve-communication="${communication.id}">核准 Mock 寄送</button>` : ""}${communication.status === "approved" && state.user.role === "admin" ? `<button class="button primary compact" type="button" data-send-communication="${communication.id}">執行 Mock Send</button>` : ""}</footer>
     </form>` : (item.ai_draft_status === "approved" ? `<button class="button ghost compact" type="button" data-create-communication="${item.id}">建立可編輯 Mock Email 草稿</button>` : "");
     const draftPanel = draft ? `<details class="ai-followup" open>
       <summary><span>✦ AI Follow-up Copilot</span><span class="status-badge ${escapeHtml(item.ai_draft_status)}">${escapeHtml(labels[item.ai_draft_status] || item.ai_draft_status)}</span></summary>

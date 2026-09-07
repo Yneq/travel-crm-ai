@@ -69,6 +69,8 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("uk_communication_reminder", self.migration)
         self.assertIn("uk_communication_send_idempotency", self.migration)
         self.assertIn("approved_by", self.migration)
+        self.assertIn("last_edited_by", self.migration)
+        self.assertIn("fk_communication_last_editor", self.migration)
         self.assertIn("provider_message_id", self.migration)
 
 

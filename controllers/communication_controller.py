@@ -7,6 +7,7 @@ from repositories import communication_repository as repository
 
 router = APIRouter(prefix="/api", tags=["communication drafts"])
 write_access = require_roles("admin", "advisor")
+approval_access = require_roles("admin")
 
 
 def _raise(exc: Exception):
@@ -70,7 +71,7 @@ def update_draft(
 def approve_draft(
     draft_id: int,
     connection=Depends(get_db_connection),
-    current_user: dict = Depends(write_access),
+    current_user: dict = Depends(approval_access),
 ):
     try:
         return repository.approve_draft(connection, draft_id, current_user["id"])
@@ -87,7 +88,7 @@ def send_draft(
     response: Response,
     idempotency_key: str = Header(min_length=8, max_length=128, alias="Idempotency-Key"),
     connection=Depends(get_db_connection),
-    current_user: dict = Depends(write_access),
+    current_user: dict = Depends(approval_access),
 ):
     try:
         draft, sent = repository.send_draft(

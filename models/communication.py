@@ -27,9 +27,14 @@ class CommunicationResponse(BaseModel):
     version: int
     provider: str
     created_by: int
+    created_by_name: str
+    last_edited_by: int
+    last_edited_by_name: str
     approved_by: int | None
+    approved_by_name: str | None
     approved_at: datetime | None
     sent_by: int | None
+    sent_by_name: str | None
     sent_at: datetime | None
     provider_message_id: str | None
     provider_payload: dict | None

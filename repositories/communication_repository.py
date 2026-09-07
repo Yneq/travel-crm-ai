@@ -2,12 +2,27 @@ import json
 from datetime import datetime, timezone
 
 from services.communication_provider import get_communication_provider
+from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
 from models.communication import CommunicationStatus
 from services.workflow import ensure_communication_transition
 
 
 class CommunicationConflict(ValueError):
     pass
+
+
+COMMUNICATION_SELECT = """
+    SELECT cd.*,
+           creator.name AS created_by_name,
+           editor.name AS last_edited_by_name,
+           approver.name AS approved_by_name,
+           sender.name AS sent_by_name
+    FROM communication_drafts cd
+    JOIN staff_users creator ON creator.id = cd.created_by
+    JOIN staff_users editor ON editor.id = cd.last_edited_by
+    LEFT JOIN staff_users approver ON approver.id = cd.approved_by
+    LEFT JOIN staff_users sender ON sender.id = cd.sent_by
+"""
 
 
 def _json(value) -> str:
@@ -34,7 +49,7 @@ def get_draft(connection, draft_id: int, cursor=None) -> dict | None:
     owns_cursor = cursor is None
     cursor = cursor or connection.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT * FROM communication_drafts WHERE id = %s", (draft_id,))
+        cursor.execute(f"{COMMUNICATION_SELECT} WHERE cd.id = %s", (draft_id,))
         return _decode(cursor.fetchone())
     finally:
         if owns_cursor:
@@ -45,7 +60,7 @@ def list_drafts(connection, limit: int = 100) -> list[dict]:
     cursor = connection.cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT * FROM communication_drafts ORDER BY updated_at DESC, id DESC LIMIT %s",
+            f"{COMMUNICATION_SELECT} ORDER BY cd.updated_at DESC, cd.id DESC LIMIT %s",
             (limit,),
         )
         return [_decode(row) for row in cursor.fetchall()]
@@ -60,7 +75,7 @@ def create_from_reminder(connection, reminder_id: int, actor_id: int) -> tuple[d
         reminder = cursor.fetchone()
         if reminder is None:
             raise LookupError("Reminder not found")
-        cursor.execute("SELECT * FROM communication_drafts WHERE reminder_id = %s", (reminder_id,))
+        cursor.execute(f"{COMMUNICATION_SELECT} WHERE cd.reminder_id = %s", (reminder_id,))
         existing = _decode(cursor.fetchone())
         if existing:
             connection.commit()
@@ -79,12 +94,13 @@ def create_from_reminder(connection, reminder_id: int, actor_id: int) -> tuple[d
         cursor.execute(
             """
             INSERT INTO communication_drafts(
-                reminder_id, member_id, recipient_label, subject, body, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                reminder_id, member_id, recipient_label, subject, body,
+                created_by, last_edited_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 reminder_id, reminder.get("member_id"), recipient_label,
-                ai_draft["message_subject"], ai_draft["message_body"], actor_id,
+                ai_draft["message_subject"], ai_draft["message_body"], actor_id, actor_id,
             ),
         )
         draft = get_draft(connection, cursor.lastrowid, cursor=cursor)
@@ -112,10 +128,10 @@ def update_draft(connection, draft_id: int, subject: str, body: str, actor_id: i
             """
             UPDATE communication_drafts
             SET subject = %s, body = %s, status = 'draft', version = version + 1,
-                approved_by = NULL, approved_at = NULL
+                approved_by = NULL, approved_at = NULL, last_edited_by = %s
             WHERE id = %s
             """,
-            (subject, body, draft_id),
+            (subject, body, actor_id, draft_id),
         )
         draft = get_draft(connection, draft_id, cursor=cursor)
         _audit(cursor, actor_id, draft, "edited_and_approval_reset")
@@ -137,6 +153,10 @@ def approve_draft(connection, draft_id: int, actor_id: int) -> dict:
             raise LookupError("Communication draft not found")
         if current["status"] != "draft":
             raise CommunicationConflict("Only a draft communication can be approved")
+        try:
+            ensure_independent_approver(actor_id, current["last_edited_by"])
+        except MakerCheckerConflict as exc:
+            raise CommunicationConflict(str(exc)) from exc
         ensure_communication_transition(current["status"], CommunicationStatus.APPROVED)
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         cursor.execute(

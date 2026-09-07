@@ -28,8 +28,8 @@ contracts and operational data before introducing model-driven automation.
   upcoming departures, with deduplication and human acknowledgement
 - AI Follow-up Copilot for internal summaries, recommended actions, and editable
   traveler-message drafts; approval never sends a message automatically
-- Versioned communication drafts with approval reset on edit and idempotent,
-  local-only Mock Email delivery
+- Versioned communication drafts with approval reset on edit, maker-checker
+  separation, named audit actors, and idempotent local-only Mock Email delivery
 - Versioned six-case AI regression set covering schema, guardrails, privacy,
   unsafe operational claims, and latency
 - Audit logs for CRM mutations
@@ -232,11 +232,14 @@ AI output approved → editable communication draft → send approval → Mock S
 ```
 
 Editing either subject or body increments the version and resets any previous
-send approval. A `draft` cannot be sent directly, and a `sent` record is
-immutable. Mock Send requires an `Idempotency-Key`; replaying the same key
-returns the original result, while a different key cannot send the same draft
-again. `MockEmailProvider` performs no network request and stores only a local
-simulation receipt—it does not use a real email address.
+send approval. The last editor cannot approve that version; approval is limited
+to an `admin` account belonging to a different staff user. The UI records the
+creator, last editor, approver, and sender by name. A `draft` cannot be sent
+directly, and a `sent` record is immutable. Mock Send requires an
+`Idempotency-Key`; replaying the same key returns the original result, while a
+different key cannot send the same draft again. `MockEmailProvider` performs no
+network request and stores only a local simulation receipt—it does not use a
+real email address.
 
 ## AI regression evaluation
 
@@ -319,10 +322,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **45 automated tests**.
+The current suite passes **47 automated tests**.
 
 ## Next milestone
 
 1. Expand evaluation fixtures and compare model/Prompt versions
-2. Add role-separated approval policy and communication template history
+2. Add communication template and version-history views
 3. Production communication/payment adapters, monitoring, and secret management

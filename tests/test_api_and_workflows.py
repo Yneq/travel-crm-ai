@@ -17,6 +17,7 @@ from models.reminder import ReminderStatus
 from models.communication import CommunicationStatus
 from services.payment_provider import get_payment_provider
 from services.communication_provider import get_communication_provider
+from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
 from services.followup_provider import (
@@ -185,6 +186,13 @@ class WorkflowTests(unittest.TestCase):
             ensure_communication_transition("draft", CommunicationStatus.SENT)
         with self.assertRaises(InvalidTransition):
             ensure_communication_transition("sent", CommunicationStatus.DRAFT)
+
+    def test_communication_maker_cannot_approve_own_edit(self):
+        with self.assertRaises(MakerCheckerConflict):
+            ensure_independent_approver(actor_id=7, last_edited_by=7)
+
+    def test_communication_checker_must_be_a_different_user(self):
+        ensure_independent_approver(actor_id=8, last_edited_by=7)
 
 
 class ReminderRuleTests(unittest.TestCase):

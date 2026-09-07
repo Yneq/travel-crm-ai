@@ -25,7 +25,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 內部任務指派與狀態管理
 - 營運提醒中心：偵測即將到期任務、待付款訂單與即將出發行程，並支援防重複與人工處理
 - AI Follow-up Copilot：產生內部摘要、建議步驟與可編輯的旅客聯絡草稿；核准不會自動寄送
-- 版本化通訊草稿：編輯後撤銷核准，並提供具 Idempotency 的本機 Mock Email
+- 版本化通訊草稿：編輯後撤銷核准、maker-checker 角色分離、具名稽核人員，
+  並提供具 Idempotency 的本機 Mock Email
 - 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
@@ -204,10 +205,12 @@ SMS 或任何其他旅客通知。外部模型重試後仍無法使用時，流�
 AI 輸出核准 → 可編輯通訊草稿 → 寄送核准 → Mock Send
 ```
 
-修改主旨或內容會增加版本並撤銷先前的寄送核准。`draft` 不能直接寄送，`sent`
-紀錄也不能再編輯。Mock Send 必須提供 `Idempotency-Key`；重送相同 Key 會取得
-原結果，不同 Key 也不能讓同一草稿寄送兩次。`MockEmailProvider` 不會建立任何
-網路連線，只保存本機模擬收據，也不會使用真實 Email 地址。
+修改主旨或內容會增加版本並撤銷先前的寄送核准。最後編輯者不能核准自己的版本，
+核准操作只開放給另一位 `admin`；介面會具名顯示建立者、最後編輯者、核准者與
+寄送者。`draft` 不能直接寄送，`sent` 紀錄也不能再編輯。Mock Send 必須提供
+`Idempotency-Key`；重送相同 Key 會取得原結果，不同 Key 也不能讓同一草稿寄送
+兩次。`MockEmailProvider` 不會建立任何網路連線，只保存本機模擬收據，也不會
+使用真實 Email 地址。
 
 ## AI Regression Evaluation
 
@@ -284,10 +287,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **45 項自動測試**。
+目前共通過 **47 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 加入角色分離的核准政策與通訊 Template 歷史
+2. 加入通訊 Template 與版本歷史檢視
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management
