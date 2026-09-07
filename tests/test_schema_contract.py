@@ -61,6 +61,8 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("agent_action_proposals", self.migration)
         self.assertIn("executed_entity_id", self.migration)
         self.assertIn("idx_agent_proposals_status_expiry", self.migration)
+        self.assertIn("idx_agent_proposals_assignee_status", self.migration)
+        self.assertIn("fk_agent_proposal_assignee", self.migration)
 
     def test_operational_reminders_are_deduplicated_and_reviewable(self):
         self.assertIn("uk_reminders_dedup", self.migration)

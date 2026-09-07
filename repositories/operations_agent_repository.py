@@ -188,6 +188,8 @@ def list_action_proposals(
     connection,
     status: str | None = None,
     search: str | None = None,
+    assigned_to: int | None = None,
+    unassigned: bool = False,
     limit: int = 8,
     offset: int = 0,
 ) -> dict:
@@ -196,6 +198,8 @@ def list_action_proposals(
         search_pattern = f"%{(search or '').strip()}%"
         where = """
             WHERE (%s IS NULL OR effective_status = %s)
+              AND (%s IS NULL OR assigned_to = %s)
+              AND (%s = 0 OR assigned_to IS NULL)
               AND (
                 %s = '%'
                 OR JSON_UNQUOTE(JSON_EXTRACT(action_payload, '$.title')) LIKE %s
@@ -204,16 +208,18 @@ def list_action_proposals(
               )
         """
         parameters = (
-            status, status, search_pattern, search_pattern, search_pattern, search_pattern
+            status, status, assigned_to, assigned_to, int(unassigned),
+            search_pattern, search_pattern, search_pattern, search_pattern
         )
         source = """
             (
-              SELECT proposals.*,
+              SELECT proposals.*, assignee.name AS assigned_to_name,
                      CASE
                        WHEN status = 'pending' AND expires_at <= UTC_TIMESTAMP() THEN 'expired'
                        ELSE status
                      END AS effective_status
               FROM agent_action_proposals proposals
+              LEFT JOIN staff_users assignee ON assignee.id = proposals.assigned_to
             ) filtered_proposals
         """
         cursor.execute(f"SELECT COUNT(*) AS total FROM {source} {where}", parameters)
@@ -233,6 +239,70 @@ def list_action_proposals(
             "limit": limit,
             "offset": offset,
         }
+    finally:
+        cursor.close()
+
+
+def assign_action_proposals(
+    connection,
+    proposal_ids: list[int],
+    assigned_to: int | None,
+    actor_id: int,
+) -> dict:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        placeholders = ", ".join(["%s"] * len(proposal_ids))
+        cursor.execute(
+            f"""
+            SELECT id, status, expires_at, assigned_to
+            FROM agent_action_proposals
+            WHERE id IN ({placeholders})
+            FOR UPDATE
+            """,
+            tuple(proposal_ids),
+        )
+        proposals = {row["id"]: row for row in cursor.fetchall()}
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        updated_ids = []
+        skipped_ids = []
+        for proposal_id in proposal_ids:
+            proposal = proposals.get(proposal_id)
+            eligible = (
+                proposal is not None
+                and proposal["status"] == "pending"
+                and proposal["expires_at"] > now
+                and proposal["assigned_to"] != assigned_to
+            )
+            if not eligible:
+                skipped_ids.append(proposal_id)
+                continue
+            cursor.execute(
+                "UPDATE agent_action_proposals SET assigned_to = %s WHERE id = %s",
+                (assigned_to, proposal_id),
+            )
+            cursor.execute(
+                """
+                INSERT INTO audit_logs(
+                    actor_id, entity_type, entity_id, action, before_data, after_data
+                ) VALUES (%s, 'agent_action_proposal', %s, 'assignment_changed', %s, %s)
+                """,
+                (
+                    actor_id,
+                    str(proposal_id),
+                    json.dumps({"assigned_to": proposal["assigned_to"]}),
+                    json.dumps({"assigned_to": assigned_to}),
+                ),
+            )
+            updated_ids.append(proposal_id)
+        connection.commit()
+        return {
+            "updated_ids": updated_ids,
+            "skipped_ids": skipped_ids,
+            "assigned_to": assigned_to,
+        }
+    except Exception:
+        connection.rollback()
+        raise
     finally:
         cursor.close()
 

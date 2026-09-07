@@ -22,6 +22,8 @@ class ActionProposalResponse(BaseModel):
     status: str
     expires_at: datetime
     created_by: int
+    assigned_to: int | None = None
+    assigned_to_name: str | None = None
     reviewed_by: int | None
     review_notes: str | None
     reviewed_at: datetime | None
@@ -49,6 +51,24 @@ class ActionProposalReview(BaseModel):
         if self.notes is not None:
             self.notes = self.notes.strip() or None
         return self
+
+
+class ActionProposalAssignmentRequest(BaseModel):
+    proposal_ids: list[int] = Field(min_length=1, max_length=50)
+    assignment: Literal["me", "unassigned"]
+
+    @model_validator(mode="after")
+    def normalize_proposal_ids(self):
+        self.proposal_ids = list(dict.fromkeys(self.proposal_ids))
+        if any(proposal_id < 1 for proposal_id in self.proposal_ids):
+            raise ValueError("proposal_ids must contain positive IDs")
+        return self
+
+
+class ActionProposalAssignmentResult(BaseModel):
+    updated_ids: list[int]
+    skipped_ids: list[int]
+    assigned_to: int | None
 
 
 class OperationsAgentResponse(BaseModel):

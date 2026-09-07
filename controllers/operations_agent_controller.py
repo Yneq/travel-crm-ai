@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from dependencies import get_current_user, get_db_connection, require_roles
 from models.operations_agent import (
+    ActionProposalAssignmentRequest,
+    ActionProposalAssignmentResult,
     ActionProposalPage,
     ActionProposalResponse,
     ActionProposalReview,
@@ -43,13 +45,34 @@ def create_operations_agent_run(
 def list_action_proposals(
     status: Literal["pending", "executed", "rejected", "expired"] | None = None,
     search: str | None = Query(default=None, max_length=100),
+    assignment: Literal["mine", "unassigned"] | None = None,
     limit: int = Query(default=8, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
     connection=Depends(get_db_connection),
-    _current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     return repository.list_action_proposals(
-        connection, status=status, search=search, limit=limit, offset=offset
+        connection,
+        status=status,
+        search=search,
+        assigned_to=current_user["id"] if assignment == "mine" else None,
+        unassigned=assignment == "unassigned",
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post("/proposal-assignments", response_model=ActionProposalAssignmentResult)
+def assign_action_proposals(
+    payload: ActionProposalAssignmentRequest,
+    connection=Depends(get_db_connection),
+    current_user: dict = Depends(write_access),
+):
+    return repository.assign_action_proposals(
+        connection,
+        proposal_ids=payload.proposal_ids,
+        assigned_to=current_user["id"] if payload.assignment == "me" else None,
+        actor_id=current_user["id"],
     )
 
 

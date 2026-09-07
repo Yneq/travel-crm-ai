@@ -41,7 +41,7 @@ operational data with guarded model-driven automation.
 - Human-approved Agent write proposals for internal follow-up tasks, with
   24-hour expiry, required rejection reasons, stale-source validation,
   duplicate-execution protection, atomic audit records, and a searchable,
-  status-filtered review queue with pagination
+  status-filtered review queue with pagination, ownership, and bulk triage
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -129,6 +129,7 @@ revoked account cannot continue using an older JWT.
 | Audit filter facets (admin only) | `GET` | `/api/audit-logs/facets` |
 | Run the read-only CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
 | Search/filter paginated Agent action proposals | `GET` | `/api/operations-agent/proposals` |
+| Assign or unassign Agent proposals in bulk | `POST` | `/api/operations-agent/proposal-assignments` |
 | Approve or reject an Agent proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
@@ -261,10 +262,13 @@ review time and records blocked attempts as `expired`. Rejection requires a
 reviewer reason and leaves task data unchanged. No proposal can execute a
 payment, booking, order, or external communication.
 
-The review queue accepts `status`, `search`, `limit`, and `offset` query
-parameters. Search covers proposal titles, descriptions, and order numbers;
-`expired` is calculated consistently in the database query before filtering
-and pagination.
+The review queue accepts `status`, `assignment`, `search`, `limit`, and
+`offset` query parameters. Search covers proposal titles, descriptions, and
+order numbers; reviewers can filter work assigned to themselves or still
+unassigned. Eligible pending proposals can be selected and assigned in bulk.
+Expired or completed proposals are skipped, and every ownership change stores
+before/after assignee IDs in the Audit Log. `expired` is calculated consistently
+in the database query before filtering and pagination.
 
 ## AI Follow-up Copilot
 
@@ -391,10 +395,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **68 automated tests**.
+The current suite passes **70 automated tests**.
 
 ## Next milestone
 
 1. Expand live-model evaluation and compare model/prompt versions
-2. Add proposal ownership and bulk queue triage
+2. Add proposal SLA metrics and reviewer notifications
 3. Production communication/payment adapters, monitoring, and secret management

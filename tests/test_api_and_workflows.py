@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -29,7 +29,10 @@ from services.operations_agent_provider import (
     OperationsAgentProviderError,
     validate_model_answer,
 )
-from repositories.operations_agent_repository import list_action_proposals
+from repositories.operations_agent_repository import (
+    assign_action_proposals,
+    list_action_proposals,
+)
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
@@ -135,6 +138,7 @@ class ApiContractTests(unittest.TestCase):
             ("/api/audit-logs/facets", "get"),
             ("/api/operations-agent/runs", "post"),
             ("/api/operations-agent/proposals", "get"),
+            ("/api/operations-agent/proposal-assignments", "post"),
             ("/api/operations-agent/proposals/{proposal_id}/review", "post"),
         }
 
@@ -241,6 +245,41 @@ class StaffPolicyTests(unittest.TestCase):
 
 
 class OperationsAgentTests(unittest.TestCase):
+    def test_assignment_request_deduplicates_proposal_ids(self):
+        from models.operations_agent import ActionProposalAssignmentRequest
+
+        request = ActionProposalAssignmentRequest(
+            proposal_ids=[3, 3, 7], assignment="me"
+        )
+
+        self.assertEqual([3, 7], request.proposal_ids)
+
+    def test_bulk_assignment_skips_expired_or_missing_proposals(self):
+        utc_now = datetime.now(timezone.utc).replace(tzinfo=None)
+        cursor = MagicMock()
+        cursor.fetchall.return_value = [
+            {
+                "id": 3, "status": "pending",
+                "expires_at": utc_now + timedelta(hours=1),
+                "assigned_to": None,
+            },
+            {
+                "id": 7, "status": "pending",
+                "expires_at": utc_now - timedelta(hours=1),
+                "assigned_to": None,
+            },
+        ]
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+
+        result = assign_action_proposals(
+            connection, proposal_ids=[3, 7, 9], assigned_to=2, actor_id=2
+        )
+
+        self.assertEqual([3], result["updated_ids"])
+        self.assertEqual([7, 9], result["skipped_ids"])
+        connection.commit.assert_called_once()
+
     def test_proposal_list_returns_page_metadata_and_effective_status(self):
         cursor = MagicMock()
         cursor.fetchone.return_value = {"total": 1}
@@ -266,7 +305,11 @@ class OperationsAgentTests(unittest.TestCase):
         operation = app.openapi()["paths"]["/api/operations-agent/proposals"]["get"]
         parameter_names = {parameter["name"] for parameter in operation["parameters"]}
 
-        self.assertTrue({"status", "search", "limit", "offset"}.issubset(parameter_names))
+        self.assertTrue(
+            {"status", "assignment", "search", "limit", "offset"}.issubset(
+                parameter_names
+            )
+        )
 
     def test_rejected_proposal_requires_reviewer_notes(self):
         from models.operations_agent import ActionProposalReview

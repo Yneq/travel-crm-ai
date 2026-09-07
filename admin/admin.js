@@ -19,7 +19,8 @@ const state = {
   latestAgentRun: null,
   actionProposals: [],
   proposalPage: { items: [], total: 0, limit: 8, offset: 0 },
-  proposalFilters: { status: "", search: "" },
+  proposalFilters: { status: "", assignment: "", search: "" },
+  selectedProposalIds: new Set(),
   staffUsers: [],
   auditPage: { items: [], total: 0, limit: 50, offset: 0 },
   auditFacets: { entity_types: [], actions: [], actors: [] },
@@ -228,6 +229,7 @@ async function loadData() {
       api(buildProposalPath()),
     ]);
     state.actionProposals = state.proposalPage.items;
+    state.selectedProposalIds.clear();
     const communicationVersionLists = await Promise.all(
       state.communicationDrafts.map((draft) => api(`/api/communication-drafts/${draft.id}/versions`))
     );
@@ -274,6 +276,7 @@ function buildProposalPath(offset = state.proposalPage.offset || 0) {
     offset: String(offset),
   });
   if (state.proposalFilters.status) parameters.set("status", state.proposalFilters.status);
+  if (state.proposalFilters.assignment) parameters.set("assignment", state.proposalFilters.assignment);
   if (state.proposalFilters.search) parameters.set("search", state.proposalFilters.search);
   return `/api/operations-agent/proposals?${parameters}`;
 }
@@ -283,6 +286,7 @@ async function loadActionProposals(offset = 0) {
   try {
     state.proposalPage = await api(buildProposalPath(offset));
     state.actionProposals = state.proposalPage.items;
+    state.selectedProposalIds.clear();
     renderOperationsAgent();
   } finally {
     setSyncing(false);
@@ -354,7 +358,9 @@ function renderOperationsAgent() {
     const payload = proposal.action_payload;
     const pending = proposal.status === "pending";
     const reviewNote = proposal.review_notes ? `<small class="proposal-review-note">審核備註：${escapeHtml(proposal.review_notes)}</small>` : "";
-    return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div><strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 任務期限 ${formatDate(payload.due_at, true)}</small><small>提案有效至 ${formatDate(proposal.expires_at, true)}</small>${reviewNote}</div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回", expired: "已過期" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
+    const owner = proposal.assigned_to_name || "尚未指派";
+    const selector = pending && canReview ? `<label class="proposal-select"><input type="checkbox" data-select-proposal="${proposal.id}" ${state.selectedProposalIds.has(proposal.id) ? "checked" : ""} /><span>選取</span></label>` : "";
+    return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div>${selector}<strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 任務期限 ${formatDate(payload.due_at, true)}</small><small>提案有效至 ${formatDate(proposal.expires_at, true)}</small><small class="proposal-owner">負責人：${escapeHtml(owner)}</small>${reviewNote}</div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回", expired: "已過期" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
   }).join("") : '<div class="proposal-empty">目前條件下沒有提案。</div>';
   const proposalsHtml = `<div class="agent-proposals">
     <div class="agent-proposals-heading"><div><p class="eyebrow">WRITE PROPOSALS</p><h3>人工審核佇列</h3></div><small>AI 不會直接寫入</small></div>
@@ -367,9 +373,15 @@ function renderOperationsAgent() {
         <option value="rejected" ${state.proposalFilters.status === "rejected" ? "selected" : ""}>已退回</option>
         <option value="expired" ${state.proposalFilters.status === "expired" ? "selected" : ""}>已過期</option>
       </select>
+      <select name="assignment">
+        <option value="">全部負責人</option>
+        <option value="mine" ${state.proposalFilters.assignment === "mine" ? "selected" : ""}>指派給我</option>
+        <option value="unassigned" ${state.proposalFilters.assignment === "unassigned" ? "selected" : ""}>尚未指派</option>
+      </select>
       <button class="button ghost compact" type="submit">套用</button>
     </form>
     <div class="proposal-result-count">顯示 ${pageStart}–${pageEnd} 筆，共 ${page.total} 筆</div>
+    ${canReview ? `<div class="proposal-bulk-bar"><span>已選 <b data-proposal-selected-count>${state.selectedProposalIds.size}</b> 筆</span><button class="button ghost compact" data-bulk-assignment="me" ${state.selectedProposalIds.size ? "" : "disabled"}>指派給我</button><button class="button ghost compact" data-bulk-assignment="unassigned" ${state.selectedProposalIds.size ? "" : "disabled"}>解除指派</button></div>` : ""}
     ${proposalCards}
     <div class="proposal-pagination">
       <button class="button ghost compact" data-proposal-page="${Math.max(0, page.offset - page.limit)}" ${page.offset === 0 ? "disabled" : ""}>← 上一頁</button>
@@ -849,12 +861,45 @@ $("#operations-agent-result").addEventListener("submit", async (event) => {
   const values = Object.fromEntries(new FormData(event.target));
   state.proposalFilters = {
     status: values.status,
+    assignment: values.assignment,
     search: values.search.trim(),
   };
   await loadActionProposals(0);
 });
 
+$("#operations-agent-result").addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-select-proposal]");
+  if (!checkbox) return;
+  const proposalId = Number(checkbox.dataset.selectProposal);
+  if (checkbox.checked) state.selectedProposalIds.add(proposalId);
+  else state.selectedProposalIds.delete(proposalId);
+  const count = $("#operations-agent-result [data-proposal-selected-count]");
+  if (count) count.textContent = state.selectedProposalIds.size;
+  $$("#operations-agent-result [data-bulk-assignment]").forEach((button) => {
+    button.disabled = state.selectedProposalIds.size === 0;
+  });
+});
+
 $("#operations-agent-result").addEventListener("click", async (event) => {
+  const bulkButton = event.target.closest("[data-bulk-assignment]");
+  if (bulkButton && !bulkButton.disabled) {
+    bulkButton.disabled = true;
+    try {
+      const result = await api("/api/operations-agent/proposal-assignments", {
+        method: "POST",
+        body: JSON.stringify({
+          proposal_ids: [...state.selectedProposalIds],
+          assignment: bulkButton.dataset.bulkAssignment,
+        }),
+      });
+      await loadActionProposals(state.proposalPage.offset);
+      const skipped = result.skipped_ids.length ? `，略過 ${result.skipped_ids.length} 筆不可分派提案` : "";
+      showToast(`已更新 ${result.updated_ids.length} 筆負責人${skipped}`);
+    } catch (error) {
+      showToast(error.message, true);
+    }
+    return;
+  }
   const pageButton = event.target.closest("[data-proposal-page]");
   if (pageButton && !pageButton.disabled) {
     await loadActionProposals(Number(pageButton.dataset.proposalPage));
