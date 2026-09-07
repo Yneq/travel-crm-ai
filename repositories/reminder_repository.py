@@ -25,7 +25,7 @@ def _decode(row: dict | None) -> dict | None:
     return row
 
 
-def _audit(cursor, actor_id: int, reminder: dict, action: str) -> None:
+def _audit(cursor, actor_id: int | None, reminder: dict, action: str) -> None:
     cursor.execute(
         """
         INSERT INTO audit_logs(actor_id, entity_type, entity_id, action, after_data)
@@ -108,7 +108,7 @@ def _collect_signals(cursor, now: datetime) -> list[dict]:
     return signals
 
 
-def scan_operational_reminders(connection, actor_id: int, now: datetime) -> dict:
+def scan_operational_reminders(connection, actor_id: int | None, now: datetime) -> dict:
     cursor = connection.cursor(dictionary=True)
     created: list[dict] = []
     existing_count = 0

@@ -29,7 +29,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
-- 使用 Docker Compose 建立本機 MySQL 與 Redis 環境
+- 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
+- 使用 Docker Compose 建立本機 MySQL、Redis、API 與 Worker 環境
 - `/docs` OpenAPI 文件
 - `/admin` 瀏覽器營運管理介面
 
@@ -88,6 +89,9 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 將提醒標記為已處理或略過 | `PATCH` | `/api/reminders/{reminder_id}` |
 | 產生 AI 跟進草稿 | `POST` | `/api/reminders/{reminder_id}/ai-draft` |
 | 核准或退回跟進草稿 | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
+| 背景工作紀錄 | `GET` | `/api/operations/jobs` |
+| Worker 與 Queue 狀態 | `GET` | `/api/operations/worker/status` |
+| 重新排程 Dead Letter（限管理員） | `POST` | `/api/operations/jobs/{job_id}/retry` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -206,6 +210,20 @@ python scripts/evaluate_ai.py --provider gemini --allow-live-api \
   --output output/ai-eval-gemini.json
 ```
 
+## Background Worker 與 Retry Queue
+
+`worker` Service 會依設定的時間區段建立一筆具 Idempotency 保護的提醒掃描工作。
+MySQL `integration_events` 是持久化 Job Ledger；Redis Sorted Set 只保存執行時間。
+Worker 啟動及輪詢時會從 MySQL 恢復已到期的 `scheduled` 或 `retrying` 工作，
+因此 Redis 重啟不會讓工作的 Source of Truth 消失。
+
+Worker Claim 工作時會取得 Processing Lease；如果 Worker 在完成前停止，租約逾時
+會把工作轉回 `retrying`，避免永遠卡在 `processing`。
+
+失敗工作使用有上限的 Exponential Backoff。超過 `WORKER_MAX_ATTEMPTS` 後會進入
+`dead_letter`，必須由已登入的管理員重新排程。Worker 寫入 Reminder Audit Log
+時使用空的 System Actor，不會冒充任何員工帳號。
+
 ## 本機執行
 
 若要在容器外執行 API，先複製環境設定範例：
@@ -221,7 +239,7 @@ docker compose up --build
 ```
 
 系統會建立 `travel_crm` MySQL Database、依序套用 SQL Migrations，並啟動
-Redis 與 FastAPI Service。如果 Docker Hub 暫時連線逾時，但本機已有 API Image，
+Redis、FastAPI Service 與 Background Worker。如果 Docker Hub 暫時連線逾時，但本機已有 API Image，
 可以使用 `docker compose up -d --no-build`。
 
 Docker Compose 在開發環境使用 Uvicorn Reload Mode，Python 程式變更後會自動
@@ -247,10 +265,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **37 項自動測試**。
+目前共通過 **42 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 排程式提醒執行與 Integration Retry Processing
-3. 正式通訊／Payment Provider Adapter 與 Secret Management
+2. 加入可編輯聯絡草稿與明確的寄送核准
+3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

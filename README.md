@@ -33,7 +33,9 @@ contracts and operational data before introducing model-driven automation.
 - Audit logs for CRM mutations
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
-- Local MySQL and Redis environment through Docker Compose
+- Independent background worker with Redis scheduled jobs, MySQL recovery,
+  exponential retry, and dead-letter handling
+- Local MySQL, Redis, API, and worker environment through Docker Compose
 - OpenAPI documentation at `/docs`
 - Browser-based operations dashboard at `/admin`
 
@@ -95,6 +97,9 @@ an authenticated admin.
 | Acknowledge or dismiss reminder | `PATCH` | `/api/reminders/{reminder_id}` |
 | Generate AI follow-up draft | `POST` | `/api/reminders/{reminder_id}/ai-draft` |
 | Approve or reject follow-up draft | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
+| Background job history | `GET` | `/api/operations/jobs` |
+| Worker and queue status | `GET` | `/api/operations/worker/status` |
+| Retry a dead-letter job (admin only) | `POST` | `/api/operations/jobs/{job_id}/retry` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -233,6 +238,23 @@ python scripts/evaluate_ai.py --provider gemini --allow-live-api \
   --output output/ai-eval-gemini.json
 ```
 
+## Background worker and retry queue
+
+The `worker` service creates one idempotent reminder-scan job per configured time
+bucket. MySQL `integration_events` is the durable job ledger; Redis Sorted Sets
+hold only the execution schedule. On startup and during normal polling, the
+worker recovers due `scheduled` or `retrying` jobs from MySQL, so a Redis restart
+does not erase the source of truth.
+
+Claimed jobs receive a processing lease. If a worker stops before completion,
+the expired lease returns the job to `retrying` instead of leaving it stuck in
+`processing` forever.
+
+Failed jobs use capped exponential backoff. After `WORKER_MAX_ATTEMPTS`, a job
+moves to `dead_letter` and requires an authenticated admin to reschedule it.
+Worker executions use a null system actor in reminder audit entries instead of
+impersonating a staff account.
+
 ## Run locally
 
 Copy the example environment file if running the API outside containers:
@@ -248,7 +270,7 @@ docker compose up --build
 ```
 
 This initializes a fresh `travel_crm` MySQL database, applies the ordered SQL
-migrations, and starts Redis and the FastAPI service. If Docker Hub is timing
+migrations, and starts Redis, the FastAPI service, and the background worker. If Docker Hub is timing
 out but the API image already exists locally, use `docker compose up -d --no-build`.
 The Compose API uses Uvicorn reload mode for local development so later Python
 changes are picked up automatically; production deployment should run without
@@ -275,10 +297,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **37 automated tests**.
+The current suite passes **42 automated tests**.
 
 ## Next milestone
 
 1. Expand evaluation fixtures and compare model/Prompt versions
-2. Scheduled reminder execution and integration retry processing
-3. Production communication/payment adapters and secret management
+2. Add editable message drafts and explicit send approval
+3. Production communication/payment adapters, monitoring, and secret management

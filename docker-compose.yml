@@ -1,6 +1,7 @@
 services:
   api:
     build: .
+    image: travel-crm-ai-api
     command: ["sh", "-c", "python scripts/migrate.py && exec uvicorn app:app --reload --host 0.0.0.0 --port 8080"]
     ports:
       - "8080:8080"
@@ -26,6 +27,33 @@ services:
       AI_PROVIDER_MAX_RETRIES: ${AI_PROVIDER_MAX_RETRIES:-2}
       AI_PROVIDER_MAX_OUTPUT_TOKENS: ${AI_PROVIDER_MAX_OUTPUT_TOKENS:-8192}
     depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    image: travel-crm-ai-api
+    command: ["python", "scripts/worker.py"]
+    volumes:
+      - .:/app
+    environment:
+      DB_USER: travel_crm
+      RDS_HOST: mysql
+      RDS_PASSWORD: travel_crm
+      DB_NAME: travel_crm
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-2}
+      REMINDER_SCAN_INTERVAL_SECONDS: ${REMINDER_SCAN_INTERVAL_SECONDS:-300}
+      WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-5}
+      WORKER_RETRY_BASE_SECONDS: ${WORKER_RETRY_BASE_SECONDS:-10}
+      WORKER_RETRY_MAX_SECONDS: ${WORKER_RETRY_MAX_SECONDS:-900}
+      WORKER_LEASE_SECONDS: ${WORKER_LEASE_SECONDS:-60}
+    depends_on:
+      api:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:

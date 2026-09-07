@@ -56,6 +56,20 @@ def get_db_connection() -> Generator:
         connection.close()
 
 
+def get_redis_connection() -> Generator:
+    import redis
+
+    client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "127.0.0.1"),
+        port=int(os.getenv("REDIS_PORT", "6379")),
+        decode_responses=True,
+    )
+    try:
+        yield client
+    finally:
+        client.close()
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 

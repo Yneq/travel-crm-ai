@@ -100,6 +100,9 @@ class ApiContractTests(unittest.TestCase):
             ("/api/reminders/{reminder_id}", "patch"),
             ("/api/reminders/{reminder_id}/ai-draft", "post"),
             ("/api/reminders/{reminder_id}/ai-draft/review", "post"),
+            ("/api/operations/jobs", "get"),
+            ("/api/operations/worker/status", "get"),
+            ("/api/operations/jobs/{job_id}/retry", "post"),
         }
 
         for path, method in expected:

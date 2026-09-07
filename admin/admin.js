@@ -5,6 +5,8 @@ const state = {
   requests: [],
   tasks: [],
   reminders: [],
+  jobs: [],
+  workerStatus: null,
   trips: [],
   quotes: [],
   orders: [],
@@ -71,6 +73,8 @@ const labels = {
   dining: "餐飲", other: "其他",
   scheduled: "待處理", acknowledged: "已處理", dismissed: "已略過",
   task_due: "任務期限", payment_follow_up: "付款追蹤", trip_countdown: "出發確認",
+  retrying: "等待重試", dead_letter: "需人工介入",
+  operational_reminder_scan: "營運提醒掃描",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -186,11 +190,13 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
       api("/api/reminders?limit=100"),
+      api("/api/operations/jobs?limit=20"),
+      api("/api/operations/worker/status"),
       api("/api/trips"),
       api("/api/quotes"),
       api("/api/orders"),
@@ -226,6 +232,7 @@ function renderAll() {
   renderPipeline();
   renderTasks();
   renderReminders();
+  renderJobs();
   renderTripStudio();
   renderOrders();
   renderAIPlans();
@@ -350,6 +357,18 @@ function renderReminders() {
       ${draftPanel}
     </article>`;
   }).join("") : '<div class="panel empty-state">尚無提醒。按「掃描營運風險」檢查目前資料。</div>';
+}
+
+function renderJobs() {
+  const status = state.workerStatus || {};
+  $("#worker-status").innerHTML = `<span class="provider-dot ${status.redis_ready ? "live" : "local"}"></span><strong>${status.redis_ready ? "Redis Ready" : "Redis Offline"}</strong><small>重試 ${status.retrying || 0} · Dead Letter ${status.dead_letter || 0}</small>`;
+  $("#job-board").innerHTML = state.jobs.length ? state.jobs.map((job) => `
+    <div class="job-row">
+      <div><strong>${escapeHtml(labels[job.event_type] || job.event_type)}</strong><small>#${job.id} · ${formatDate(job.created_at, true)}</small></div>
+      <span>${job.attempts} 次嘗試</span>
+      <span class="status-badge ${escapeHtml(job.status)}">${escapeHtml(labels[job.status] || job.status)}</span>
+      ${job.status === "dead_letter" && state.user.role === "admin" ? `<button class="button ghost compact" data-retry-job="${job.id}">重新排程</button>` : `<small>${job.last_error ? escapeHtml(job.last_error) : "—"}</small>`}
+    </div>`).join("") : '<div class="panel empty-state">Worker 啟動後會在這裡顯示排程紀錄。</div>';
 }
 
 function populateFormOptions() {
@@ -766,6 +785,16 @@ $("#reminder-board").addEventListener("click", async (event) => {
     button.disabled = false;
     showToast(error.message, true);
   }
+});
+
+$("#job-board").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-retry-job]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    await api(`/api/operations/jobs/${button.dataset.retryJob}/retry`, { method: "POST" });
+    await loadData(); showSection("reminders"); showToast("Dead Letter 工作已重新排程");
+  } catch (error) { button.disabled = false; showToast(error.message, true); }
 });
 
 $("#trip-list").addEventListener("click", async (event) => {

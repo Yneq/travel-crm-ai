@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from controllers import (
     ai_controller,
     crm_controller,
+    operations_controller,
     payment_controller,
     reminder_controller,
     trip_controller,
@@ -62,3 +63,4 @@ app.include_router(trip_controller.router)
 app.include_router(payment_controller.router)
 app.include_router(ai_controller.router)
 app.include_router(reminder_controller.router)
+app.include_router(operations_controller.router)
