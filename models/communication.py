@@ -15,6 +15,32 @@ class CommunicationUpdate(BaseModel):
     body: str = Field(min_length=1, max_length=5000)
 
 
+class CommunicationTemplateResponse(BaseModel):
+    id: int
+    template_key: str
+    name: str
+    channel: str
+    subject_template: str
+    body_template: str
+    version: int
+    is_active: bool
+    created_at: datetime
+
+
+class CommunicationVersionResponse(BaseModel):
+    id: int
+    communication_draft_id: int
+    version: int
+    subject: str
+    body: str
+    edited_by: int
+    edited_by_name: str
+    source: str
+    source_template_id: int | None
+    source_template_name: str | None
+    created_at: datetime
+
+
 class CommunicationResponse(BaseModel):
     id: int
     reminder_id: int

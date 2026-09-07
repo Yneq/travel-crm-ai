@@ -30,6 +30,7 @@ contracts and operational data before introducing model-driven automation.
   traveler-message drafts; approval never sends a message automatically
 - Versioned communication drafts with approval reset on edit, maker-checker
   separation, named audit actors, and idempotent local-only Mock Email delivery
+- Privacy-safe communication templates and immutable content-version snapshots
 - Versioned six-case AI regression set covering schema, guardrails, privacy,
   unsafe operational claims, and latency
 - Audit logs for CRM mutations
@@ -107,6 +108,9 @@ an authenticated admin.
 | Edit communication and reset approval | `PATCH` | `/api/communication-drafts/{draft_id}` |
 | Approve communication | `POST` | `/api/communication-drafts/{draft_id}/approve` |
 | Execute idempotent Mock Send | `POST` | `/api/communication-drafts/{draft_id}/send` |
+| Active communication templates | `GET` | `/api/communication-templates` |
+| Apply a template as a new draft version | `POST` | `/api/communication-drafts/{draft_id}/templates/{template_id}` |
+| Communication content history | `GET` | `/api/communication-drafts/{draft_id}/versions` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -241,6 +245,14 @@ different key cannot send the same draft again. `MockEmailProvider` performs no
 network request and stores only a local simulation receipt—it does not use a
 real email address.
 
+The built-in template catalog uses an explicit placeholder allowlist:
+`member_name`, `reminder_title`, and `recommended_action`. Unknown or missing
+fields fail closed instead of being silently rendered. Creating a draft,
+manually editing it, or applying a template appends an immutable content
+snapshot with its source, editor, and optional template version. Existing rows
+from before this feature receive one migration snapshot of their current state;
+earlier content cannot be reconstructed retroactively.
+
 ## AI regression evaluation
 
 Run the deterministic baseline without external API calls:
@@ -322,10 +334,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **47 automated tests**.
+The current suite passes **50 automated tests**.
 
 ## Next milestone
 
 1. Expand evaluation fixtures and compare model/Prompt versions
-2. Add communication template and version-history views
+2. Add template management and approval-policy administration
 3. Production communication/payment adapters, monitoring, and secret management

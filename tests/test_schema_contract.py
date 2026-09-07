@@ -40,6 +40,8 @@ class SchemaContractTests(unittest.TestCase):
             "ai_runs",
             "integration_events",
             "communication_drafts",
+            "communication_templates",
+            "communication_draft_versions",
             "audit_logs",
         }
 
@@ -72,6 +74,9 @@ class SchemaContractTests(unittest.TestCase):
         self.assertIn("last_edited_by", self.migration)
         self.assertIn("fk_communication_last_editor", self.migration)
         self.assertIn("provider_message_id", self.migration)
+        self.assertIn("uk_communication_template_version", self.migration)
+        self.assertIn("uk_communication_draft_version", self.migration)
+        self.assertIn("source_template_id", self.migration)
 
 
 if __name__ == "__main__":

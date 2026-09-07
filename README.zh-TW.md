@@ -27,6 +27,7 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - AI Follow-up Copilot：產生內部摘要、建議步驟與可編輯的旅客聯絡草稿；核准不會自動寄送
 - 版本化通訊草稿：編輯後撤銷核准、maker-checker 角色分離、具名稽核人員，
   並提供具 Idempotency 的本機 Mock Email
+- 具隱私 Allowlist 的通訊範本與不可變內容版本快照
 - 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
 - CRM 寫入操作的 Audit Log
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
@@ -99,6 +100,9 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 編輯通訊內容並撤銷舊核准 | `PATCH` | `/api/communication-drafts/{draft_id}` |
 | 核准通訊草稿 | `POST` | `/api/communication-drafts/{draft_id}/approve` |
 | 執行具 Idempotency 的 Mock Send | `POST` | `/api/communication-drafts/{draft_id}/send` |
+| 取得啟用中的通訊範本 | `GET` | `/api/communication-templates` |
+| 套用範本並建立新版本 | `POST` | `/api/communication-drafts/{draft_id}/templates/{template_id}` |
+| 查詢通訊內容版本歷史 | `GET` | `/api/communication-drafts/{draft_id}/versions` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -212,6 +216,11 @@ AI 輸出核准 → 可編輯通訊草稿 → 寄送核准 → Mock Send
 兩次。`MockEmailProvider` 不會建立任何網路連線，只保存本機模擬收據，也不會
 使用真實 Email 地址。
 
+內建範本只允許 `member_name`、`reminder_title` 與 `recommended_action` 三個
+Placeholder；未知或缺少的欄位會直接拒絕，不會靜默產生不完整內容。建立草稿、
+手動修改或套用範本，都會新增一筆包含來源、編輯者及範本版本的不可變內容快照。
+功能上線前已存在的資料，只能由 Migration 保存當下版本，無法回推更早的內容。
+
 ## AI Regression Evaluation
 
 執行不會呼叫外部 API、可重現的本機 Baseline：
@@ -287,10 +296,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **47 項自動測試**。
+目前共通過 **50 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 加入通訊 Template 與版本歷史檢視
+2. 加入 Template 管理與核准政策設定
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

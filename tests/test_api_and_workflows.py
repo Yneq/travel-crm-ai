@@ -18,6 +18,7 @@ from models.communication import CommunicationStatus
 from services.payment_provider import get_payment_provider
 from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
+from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
 from services.followup_provider import (
@@ -112,6 +113,9 @@ class ApiContractTests(unittest.TestCase):
             ("/api/communication-drafts/{draft_id}", "patch"),
             ("/api/communication-drafts/{draft_id}/approve", "post"),
             ("/api/communication-drafts/{draft_id}/send", "post"),
+            ("/api/communication-templates", "get"),
+            ("/api/communication-drafts/{draft_id}/versions", "get"),
+            ("/api/communication-drafts/{draft_id}/templates/{template_id}", "post"),
         }
 
         for path, method in expected:
@@ -284,6 +288,24 @@ class PaymentProviderTests(unittest.TestCase):
         self.assertTrue(delivery.provider_message_id.startswith("mock_msg_"))
         self.assertFalse(delivery.payload["network_delivery"])
         self.assertEqual("local-simulation", delivery.payload["mode"])
+
+
+class CommunicationTemplateTests(unittest.TestCase):
+    def test_allowed_placeholders_are_rendered(self):
+        rendered = render_template(
+            "{{member_name}}：{{reminder_title}}",
+            {"member_name": "Demo Traveler", "reminder_title": "行程確認"},
+        )
+
+        self.assertEqual("Demo Traveler：行程確認", rendered)
+
+    def test_unknown_placeholder_is_rejected(self):
+        with self.assertRaises(TemplateRenderError):
+            render_template("{{email}}", {"email": "private@example.com"})
+
+    def test_missing_allowed_value_is_rejected(self):
+        with self.assertRaises(TemplateRenderError):
+            render_template("{{member_name}}：{{recommended_action}}", {"member_name": "Demo"})
 
 
 class QuotePdfTests(unittest.TestCase):

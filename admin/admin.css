@@ -193,6 +193,14 @@ td strong { color: var(--ink); }
 .message-draft { border-left: 3px solid #9a8ad1; border-radius: 8px; padding: 11px 12px; background: white; }.message-draft small { display: block; margin-bottom: 7px; color: #7a6caf; font-size: 9px; }.message-draft p { margin: 0; white-space: pre-line; }
 .ai-followup-body footer { display: flex; gap: 7px; padding-top: 3px; }
 .communication-editor { display: grid; gap: 11px; margin-top: 8px; border-top: 1px solid #ded9ef; padding-top: 14px; }.communication-heading { display: flex; justify-content: space-between; gap: 12px; }.communication-heading strong, .communication-heading small { display: block; }.communication-heading small { color: var(--muted); font-size: 9px; }.communication-editor input, .communication-editor textarea { background: white; }.communication-editor > small { color: var(--muted); font-size: 9px; }.communication-editor footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.communication-template-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.communication-history { border: 1px solid #ded9ef; border-radius: 10px; background: #faf9fd; padding: 9px 11px; }
+.communication-history summary { cursor: pointer; color: var(--ink); font-size: 11px; font-weight: 700; }
+.communication-history ol { display: grid; gap: 8px; margin: 9px 0 0; padding-left: 18px; }
+.communication-history li { color: var(--muted); font-size: 10px; }
+.communication-history li strong, .communication-history li small, .communication-history li span { display: block; }
+.communication-history li small { margin: 2px 0; font-size: 9px; }
+.communication-history li span { color: var(--ink); }
 .status-badge.sent { background: #dceee6; color: #26705b; }
 .worker-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 30px 0 12px; }.worker-heading h2 { margin: 0; font-size: 17px; }.worker-status { display: flex; align-items: center; gap: 8px; }.worker-status strong { font-size: 10px; }.worker-status small { color: var(--muted); font-size: 9px; }
 .job-board { display: grid; gap: 7px; }.job-row { display: grid; grid-template-columns: minmax(180px, 1fr) 90px 110px minmax(140px, .8fr); align-items: center; gap: 13px; padding: 12px 14px; border-top: 1px solid var(--line); }.job-row strong { display: block; font-size: 11px; }.job-row small, .job-row > span:not(.status-badge) { color: var(--muted); font-size: 9px; }.status-badge.dead_letter { background: #f5e5e7; color: #9a4651; }.status-badge.retrying { background: #f2e6ca; color: #7d5d20; }

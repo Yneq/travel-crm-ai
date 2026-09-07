@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
+from services.communication_templates import render_template
 from models.communication import CommunicationStatus
 from services.workflow import ensure_communication_transition
 
@@ -45,6 +46,23 @@ def _audit(cursor, actor_id: int, draft: dict, action: str) -> None:
     )
 
 
+def _record_version(
+    cursor, draft: dict, actor_id: int, source: str, source_template_id: int | None = None
+) -> None:
+    cursor.execute(
+        """
+        INSERT INTO communication_draft_versions(
+            communication_draft_id, version, subject, body, edited_by,
+            source, source_template_id
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            draft["id"], draft["version"], draft["subject"], draft["body"],
+            actor_id, source, source_template_id,
+        ),
+    )
+
+
 def get_draft(connection, draft_id: int, cursor=None) -> dict | None:
     owns_cursor = cursor is None
     cursor = cursor or connection.cursor(dictionary=True)
@@ -64,6 +82,45 @@ def list_drafts(connection, limit: int = 100) -> list[dict]:
             (limit,),
         )
         return [_decode(row) for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+
+
+def list_templates(connection) -> list[dict]:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT * FROM communication_templates
+            WHERE is_active = TRUE
+            ORDER BY name, version DESC
+            """
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+
+
+def list_versions(connection, draft_id: int) -> list[dict]:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM communication_drafts WHERE id = %s", (draft_id,))
+        if cursor.fetchone() is None:
+            raise LookupError("Communication draft not found")
+        cursor.execute(
+            """
+            SELECT cdv.*, editor.name AS edited_by_name,
+                   template.name AS source_template_name
+            FROM communication_draft_versions cdv
+            JOIN staff_users editor ON editor.id = cdv.edited_by
+            LEFT JOIN communication_templates template
+                ON template.id = cdv.source_template_id
+            WHERE cdv.communication_draft_id = %s
+            ORDER BY cdv.version DESC
+            """,
+            (draft_id,),
+        )
+        return cursor.fetchall()
     finally:
         cursor.close()
 
@@ -104,6 +161,7 @@ def create_from_reminder(connection, reminder_id: int, actor_id: int) -> tuple[d
             ),
         )
         draft = get_draft(connection, cursor.lastrowid, cursor=cursor)
+        _record_version(cursor, draft, actor_id, "ai_followup")
         _audit(cursor, actor_id, draft, "created_from_ai_followup")
         connection.commit()
         return draft, True
@@ -134,7 +192,65 @@ def update_draft(connection, draft_id: int, subject: str, body: str, actor_id: i
             (subject, body, actor_id, draft_id),
         )
         draft = get_draft(connection, draft_id, cursor=cursor)
+        _record_version(cursor, draft, actor_id, "manual_edit")
         _audit(cursor, actor_id, draft, "edited_and_approval_reset")
+        connection.commit()
+        return draft
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def apply_template(
+    connection, draft_id: int, template_id: int, actor_id: int
+) -> dict:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM communication_drafts WHERE id = %s FOR UPDATE", (draft_id,))
+        current = _decode(cursor.fetchone())
+        if current is None:
+            raise LookupError("Communication draft not found")
+        if current["status"] == "sent":
+            raise CommunicationConflict("A sent communication cannot be edited")
+
+        cursor.execute(
+            "SELECT * FROM communication_templates WHERE id = %s AND is_active = TRUE",
+            (template_id,),
+        )
+        template = cursor.fetchone()
+        if template is None:
+            raise LookupError("Active communication template not found")
+
+        cursor.execute("SELECT title, payload FROM reminders WHERE id = %s", (current["reminder_id"],))
+        reminder = cursor.fetchone()
+        payload = reminder.get("payload") or {}
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        context = {
+            "member_name": current["recipient_label"],
+            "reminder_title": reminder["title"],
+            "recommended_action": payload.get("recommended_action", "請確認最新進度"),
+        }
+        subject = render_template(template["subject_template"], context)
+        body = render_template(template["body_template"], context)
+        if len(subject) > 160 or len(body) > 5000:
+            raise CommunicationConflict("Rendered template exceeds communication limits")
+
+        ensure_communication_transition(current["status"], CommunicationStatus.DRAFT)
+        cursor.execute(
+            """
+            UPDATE communication_drafts
+            SET subject = %s, body = %s, status = 'draft', version = version + 1,
+                approved_by = NULL, approved_at = NULL, last_edited_by = %s
+            WHERE id = %s
+            """,
+            (subject, body, actor_id, draft_id),
+        )
+        draft = get_draft(connection, draft_id, cursor=cursor)
+        _record_version(cursor, draft, actor_id, "template", template_id)
+        _audit(cursor, actor_id, draft, f"template_applied:{template['template_key']}:v{template['version']}")
         connection.commit()
         return draft
     except Exception:

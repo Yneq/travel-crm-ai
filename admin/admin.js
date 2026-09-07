@@ -6,6 +6,8 @@ const state = {
   tasks: [],
   reminders: [],
   communicationDrafts: [],
+  communicationTemplates: [],
+  communicationVersions: {},
   jobs: [],
   workerStatus: null,
   trips: [],
@@ -77,6 +79,13 @@ const labels = {
   retrying: "等待重試", dead_letter: "需人工介入",
   operational_reminder_scan: "營運提醒掃描",
   sent: "Mock 已寄送",
+};
+
+const communicationSourceLabels = {
+  ai_followup: "AI Follow-up",
+  manual_edit: "手動修改",
+  template: "套用範本",
+  migration_backfill: "既有內容匯入",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -192,12 +201,13 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
       api("/api/reminders?limit=100"),
       api("/api/communication-drafts?limit=100"),
+      api("/api/communication-templates"),
       api("/api/operations/jobs?limit=20"),
       api("/api/operations/worker/status"),
       api("/api/trips"),
@@ -205,6 +215,12 @@ async function loadData() {
       api("/api/orders"),
       api("/api/ai/providers/status"),
     ]);
+    const communicationVersionLists = await Promise.all(
+      state.communicationDrafts.map((draft) => api(`/api/communication-drafts/${draft.id}/versions`))
+    );
+    state.communicationVersions = Object.fromEntries(
+      state.communicationDrafts.map((draft, index) => [draft.id, communicationVersionLists[index]])
+    );
     const paymentLists = await Promise.all(
       state.orders.map((order) => api(`/api/orders/${order.id}/payments`))
     );
@@ -350,12 +366,24 @@ function renderReminders() {
         ? "等待另一位 Admin 核准（建立者／最後編輯者不可自行核准）"
         : state.user.role !== "admin" ? "等待 Admin 核准" : "可由目前 Admin 獨立核准")
       : "";
+    const communicationVersions = communication ? (state.communicationVersions[communication.id] || []) : [];
+    const templateOptions = state.communicationTemplates.map((template) => `<option value="${template.id}">${escapeHtml(template.name)} · v${template.version}</option>`).join("");
+    const templateControls = canEditCommunication && templateOptions ? `<div class="communication-template-row">
+      <select data-template-select="${communication.id}" aria-label="選擇通訊範本"><option value="">選擇範本</option>${templateOptions}</select>
+      <button class="button ghost compact" type="button" data-apply-template="${communication.id}">套用範本</button>
+    </div>` : "";
+    const versionHistory = communicationVersions.length ? `<details class="communication-history">
+      <summary>版本歷史（${communicationVersions.length}）</summary>
+      <ol>${communicationVersions.map((version) => `<li><strong>v${version.version} · ${escapeHtml(communicationSourceLabels[version.source] || version.source)}</strong><small>${escapeHtml(version.edited_by_name)} · ${formatDate(version.created_at, true)}${version.source_template_name ? ` · ${escapeHtml(version.source_template_name)}` : ""}</small><span>${escapeHtml(version.subject)}</span></li>`).join("")}</ol>
+    </details>` : "";
     const communicationPanel = communication ? `<form class="communication-editor" data-communication-form="${communication.id}">
       <div class="communication-heading"><div><strong>Mock Email 草稿</strong><small>${escapeHtml(communication.recipient_label)} · v${communication.version}</small></div><span class="status-badge ${escapeHtml(communication.status)}">${escapeHtml(labels[communication.status] || communication.status)}</span></div>
+      ${templateControls}
       <label>主旨<input name="subject" value="${escapeHtml(communication.subject)}" maxlength="160" required ${canEditCommunication ? "" : "readonly"} /></label>
       <label>內容<textarea name="body" rows="5" maxlength="5000" required ${canEditCommunication ? "" : "readonly"}>${escapeHtml(communication.body)}</textarea></label>
       <small>建立：${escapeHtml(communication.created_by_name)} · 最後編輯：${escapeHtml(communication.last_edited_by_name)}${communication.approved_by_name ? ` · 核准：${escapeHtml(communication.approved_by_name)}` : ""}${communication.sent_by_name ? ` · 寄送：${escapeHtml(communication.sent_by_name)}` : ""}</small>
       <small>${escapeHtml(approvalHint || "Mock Provider 不會連外，也不會使用真實 Email 地址。")}</small>
+      ${versionHistory}
       <footer>${canEditCommunication ? `<button class="button ghost compact" type="submit">儲存修改</button>` : ""}${canApproveCommunication ? `<button class="button primary compact" type="button" data-approve-communication="${communication.id}">核准 Mock 寄送</button>` : ""}${communication.status === "approved" && state.user.role === "admin" ? `<button class="button primary compact" type="button" data-send-communication="${communication.id}">執行 Mock Send</button>` : ""}</footer>
     </form>` : (item.ai_draft_status === "approved" ? `<button class="button ghost compact" type="button" data-create-communication="${item.id}">建立可編輯 Mock Email 草稿</button>` : "");
     const draftPanel = draft ? `<details class="ai-followup" open>
@@ -766,8 +794,20 @@ $("#scan-reminders-button").addEventListener("click", async (event) => {
 
 $("#reminder-board").addEventListener("click", async (event) => {
   const createCommunication = event.target.closest("[data-create-communication]");
+  const applyTemplate = event.target.closest("[data-apply-template]");
   const approveCommunication = event.target.closest("[data-approve-communication]");
   const sendCommunication = event.target.closest("[data-send-communication]");
+  if (applyTemplate) {
+    const draftId = applyTemplate.dataset.applyTemplate;
+    const select = document.querySelector(`[data-template-select="${draftId}"]`);
+    if (!select?.value) return showToast("請先選擇通訊範本", true);
+    applyTemplate.disabled = true;
+    try {
+      await api(`/api/communication-drafts/${draftId}/templates/${select.value}`, { method: "POST" });
+      await loadData(); showSection("reminders"); showToast("範本已套用並建立新版本；核准狀態已重設");
+    } catch (error) { applyTemplate.disabled = false; showToast(error.message, true); }
+    return;
+  }
   if (createCommunication) {
     createCommunication.disabled = true;
     try {

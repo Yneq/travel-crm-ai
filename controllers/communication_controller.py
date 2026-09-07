@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 
 from dependencies import get_current_user, get_db_connection, require_roles
-from models.communication import CommunicationResponse, CommunicationUpdate
+from models.communication import (
+    CommunicationResponse,
+    CommunicationTemplateResponse,
+    CommunicationUpdate,
+    CommunicationVersionResponse,
+)
 from repositories import communication_repository as repository
 
 
@@ -25,6 +30,32 @@ def list_drafts(
     _current_user: dict = Depends(get_current_user),
 ):
     return repository.list_drafts(connection, min(max(limit, 1), 100))
+
+
+@router.get(
+    "/communication-templates",
+    response_model=list[CommunicationTemplateResponse],
+)
+def list_templates(
+    connection=Depends(get_db_connection),
+    _current_user: dict = Depends(get_current_user),
+):
+    return repository.list_templates(connection)
+
+
+@router.get(
+    "/communication-drafts/{draft_id}/versions",
+    response_model=list[CommunicationVersionResponse],
+)
+def list_versions(
+    draft_id: int,
+    connection=Depends(get_db_connection),
+    _current_user: dict = Depends(get_current_user),
+):
+    try:
+        return repository.list_versions(connection, draft_id)
+    except LookupError as exc:
+        _raise(exc)
 
 
 @router.post(
@@ -59,6 +90,24 @@ def update_draft(
     try:
         return repository.update_draft(
             connection, draft_id, payload.subject, payload.body, current_user["id"]
+        )
+    except (LookupError, repository.CommunicationConflict, ValueError) as exc:
+        _raise(exc)
+
+
+@router.post(
+    "/communication-drafts/{draft_id}/templates/{template_id}",
+    response_model=CommunicationResponse,
+)
+def apply_template(
+    draft_id: int,
+    template_id: int,
+    connection=Depends(get_db_connection),
+    current_user: dict = Depends(write_access),
+):
+    try:
+        return repository.apply_template(
+            connection, draft_id, template_id, current_user["id"]
         )
     except (LookupError, repository.CommunicationConflict, ValueError) as exc:
         _raise(exc)
