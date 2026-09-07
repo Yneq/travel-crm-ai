@@ -16,6 +16,7 @@ const state = {
   paymentsByOrder: {},
   aiPlans: [],
   aiProviderStatus: null,
+  latestAgentRun: null,
   staffUsers: [],
   auditPage: { items: [], total: 0, limit: 50, offset: 0 },
   auditFacets: { entity_types: [], actions: [], actors: [] },
@@ -291,6 +292,7 @@ function renderAll() {
   renderTripStudio();
   renderOrders();
   renderAIPlans();
+  renderOperationsAgent();
   renderStaff();
   renderAuditLogs();
   populateAuditFilters();
@@ -305,6 +307,21 @@ function renderStats() {
   $("#stat-requests").textContent = activeRequests.length;
   $("#stat-tasks").textContent = activeTasks.length;
   $("#stat-urgent").textContent = urgentTasks.length;
+}
+
+function renderOperationsAgent() {
+  const container = $("#operations-agent-result");
+  const run = state.latestAgentRun;
+  if (!run) {
+    container.innerHTML = '<div class="agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>';
+    return;
+  }
+  container.innerHTML = `
+    <div class="agent-result-heading"><div><p class="eyebrow">EVIDENCE-BACKED RESPONSE</p><h2>營運建議</h2></div><div class="agent-run-id"><strong>Run #${run.run_id}</strong><small>${run.node_trace.length} 個步驟</small></div></div>
+    <div class="agent-answer">${escapeHtml(run.answer).replaceAll("\n", "<br>")}</div>
+    <div class="agent-tools"><strong>使用的唯讀工具</strong><div>${run.tools_used.map((tool) => `<span><b>${escapeHtml(tool.label)}</b><small>${tool.result_count} 筆結果</small></span>`).join("")}</div></div>
+    <div class="agent-guardrail"><strong>✓ Human-in-the-loop</strong><p>${escapeHtml(run.guardrails.note)}</p></div>
+    <details class="agent-trace"><summary>查看 LangGraph 執行路徑</summary><ol>${run.node_trace.map((node) => `<li>${escapeHtml(node)}</li>`).join("")}</ol></details>`;
 }
 
 function memberName(memberId) {
@@ -527,7 +544,7 @@ function showSection(section) {
   $$(".workspace-section").forEach((element) => element.classList.add("hidden"));
   $(`#section-${section}`).classList.remove("hidden");
   $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.section === section));
-  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務", staff: "員工權限", audit: "Audit Log" })[section];
+  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "operations-agent": "AI Operations Copilot", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務", staff: "員工權限", audit: "Audit Log" })[section];
 }
 
 function tripStatusOptions(trip) {
@@ -744,6 +761,31 @@ $("#member-form").addEventListener("submit", async (event) => {
     }) });
     form.reset(); form.closest("dialog").close(); await loadData(); showToast("會員已建立");
   } catch (error) { formError(form, error.message); }
+});
+
+$$('[data-agent-prompt]').forEach((button) => button.addEventListener("click", () => {
+  $("#operations-agent-question").value = button.dataset.agentPrompt;
+  $("#operations-agent-question").focus();
+}));
+
+$("#operations-agent-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = "分析營運資料中…";
+  try {
+    state.latestAgentRun = await api("/api/operations-agent/runs", {
+      method: "POST",
+      body: JSON.stringify({ question: $("#operations-agent-question").value.trim() }),
+    });
+    renderOperationsAgent();
+    showToast("Agent 已完成唯讀分析");
+  } catch (error) { showToast(error.message, true); }
+  finally {
+    button.disabled = false;
+    button.textContent = "✧ 執行 Agent";
+  }
 });
 
 $("#staff-form").addEventListener("submit", async (event) => {

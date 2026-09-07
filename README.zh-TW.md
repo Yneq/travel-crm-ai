@@ -31,6 +31,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
 - 限 Admin 使用的 Audit Log 儀表板：支援操作人／資源／動作／日期篩選、分頁、
   Before／After 明細及遞迴敏感憑證遮蔽
+- LangGraph CRM Operations Agent：依問題選擇多個唯讀工具、逐步執行、產生有資料
+  依據的回答與節點 Trace，並由 Human-in-the-loop Guardrail 禁止直接執行外部動作
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
@@ -51,12 +53,17 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 | 登入並取得 Bearer Token | `POST` | `/api/auth/login` |
 | 取得目前登入員工 | `GET` | `/api/users/me` |
 | 建立員工帳號（限管理員） | `POST` | `/api/staff-users` |
+| 查詢員工及權限狀態（限管理員） | `GET` | `/api/staff-users` |
+| 修改員工角色或啟用狀態（限管理員） | `PATCH` | `/api/staff-users/{staff_id}` |
 
 登入使用 `POST`，因為這個請求會提交帳號密碼並建立驗證結果。舊系統的 S3
 Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的物件。
 
 第一位管理員建立後，Bootstrap Registration 便會關閉。第一個帳號會取得
-`admin` 角色，後續員工帳號只能由已登入的管理員建立。
+`admin` 角色，後續員工帳號只能由已登入的管理員建立。管理介面支援
+`advisor`、`finance`、`admin` 角色及帳號啟停，並禁止管理員修改或停用自己，
+且保證至少保留一位有效管理員。每次 API 請求都會重新查詢最新角色與啟用狀態，
+因此停權後既有 JWT 也會立即失效。
 
 ### CRM 與營運流程
 
@@ -106,6 +113,7 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 查詢通訊內容版本歷史 | `GET` | `/api/communication-drafts/{draft_id}/versions` |
 | 篩選及分頁查詢 Audit Log（限管理員） | `GET` | `/api/audit-logs` |
 | Audit Log 篩選選項（限管理員） | `GET` | `/api/audit-logs/facets` |
+| 執行唯讀 CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
 讀取 CRM 資料，但不能修改。
@@ -303,10 +311,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **51 項自動測試**。
+目前共通過 **59 項自動測試**。
 
 ## 下一階段
 
-1. 擴充 Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 加入員工帳號與核准政策管理
+1. 在可預測的本機 Fallback 前加入 Model-assisted Tool Selection
+2. 擴充 Agent Evaluation Fixtures，並比較不同 Model／Prompt 版本
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

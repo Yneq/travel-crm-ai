@@ -3,8 +3,8 @@
 **English** | [繁體中文](README.zh-TW.md)
 
 VoyageOps AI is an API-first travel CRM and operations platform evolved from the
-Taipei Day Trip booking project. The first milestone focuses on reliable backend
-contracts and operational data before introducing model-driven automation.
+Taipei Day Trip booking project. It combines reliable backend contracts and
+operational data with guarded model-driven automation.
 
 ## Current milestone
 
@@ -35,6 +35,8 @@ contracts and operational data before introducing model-driven automation.
   unsafe operational claims, and latency
 - Admin-only Audit Log dashboard with actor/entity/action/date filters, pagination,
   before/after details, and recursive credential redaction
+- LangGraph CRM Operations Agent with intent routing, a multi-step read-only tool
+  loop, evidence-backed answers, execution traces, and human-in-the-loop guardrails
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -120,6 +122,7 @@ revoked account cannot continue using an older JWT.
 | Communication content history | `GET` | `/api/communication-drafts/{draft_id}/versions` |
 | Filtered, paginated audit history (admin only) | `GET` | `/api/audit-logs` |
 | Audit filter facets (admin only) | `GET` | `/api/audit-logs/facets` |
+| Run the read-only CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
 read CRM data but cannot change it.
@@ -349,10 +352,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **56 automated tests**.
+The current suite passes **59 automated tests**.
 
 ## Next milestone
 
-1. Build a tool-using CRM Operations Agent on the guarded service APIs
-2. Expand evaluation fixtures and compare model/prompt versions
+1. Add model-assisted tool selection behind the deterministic Agent fallback
+2. Expand Agent evaluation fixtures and compare model/prompt versions
 3. Production communication/payment adapters, monitoring, and secret management

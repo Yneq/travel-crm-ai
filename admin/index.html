@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/admin-assets/admin.css?v=13" />
-    <script src="/admin-assets/admin.js?v=13" defer></script>
+    <link rel="stylesheet" href="/admin-assets/admin.css?v=14" />
+    <script src="/admin-assets/admin.js?v=14" defer></script>
   </head>
   <body>
     <div class="ambient ambient-one"></div>
@@ -52,6 +52,7 @@
           <button class="nav-item active" data-section="overview"><span>◫</span>總覽</button>
           <button class="nav-item" data-section="members"><span>◎</span>會員</button>
           <button class="nav-item" data-section="requests"><span>◇</span>需求 Pipeline</button>
+          <button class="nav-item" data-section="operations-agent"><span>✧</span>AI Copilot</button>
           <button class="nav-item" data-section="ai-planning"><span>✦</span>AI 規劃</button>
           <button class="nav-item" data-section="itineraries"><span>◈</span>行程與報價</button>
           <button class="nav-item" data-section="orders"><span>▤</span>訂單與付款</button>
@@ -88,6 +89,28 @@
             <article class="panel">
               <div class="panel-heading"><div><p class="eyebrow">TODAY</p><h2>優先任務</h2></div><button class="text-button section-link" data-target="tasks">任務看板</button></div>
               <div id="priority-tasks" class="task-list empty-state">尚無待辦任務</div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-operations-agent" class="workspace-section hidden">
+          <div class="agent-layout">
+            <article class="panel agent-console">
+              <div class="panel-heading"><div><p class="eyebrow">LANGGRAPH · READ-ONLY TOOLS</p><h2>CRM Operations Copilot</h2></div><span class="agent-safety">Human in control</span></div>
+              <p class="muted agent-intro">詢問目前的任務、付款追蹤、近期出發或整體營運狀況。Agent 會自行選擇唯讀工具，但不會建立訂單、付款或寄送訊息。</p>
+              <div class="agent-prompts">
+                <button type="button" data-agent-prompt="今天有哪些任務和付款需要優先處理？">今日優先事項</button>
+                <button type="button" data-agent-prompt="整理未付款訂單與近期出發行程">付款與出發風險</button>
+                <button type="button" data-agent-prompt="給我目前 CRM 營運總覽">營運總覽</button>
+              </div>
+              <form id="operations-agent-form" class="agent-form">
+                <label for="operations-agent-question">想了解什麼？</label>
+                <textarea id="operations-agent-question" name="question" rows="4" minlength="2" maxlength="500" required placeholder="例如：今天有哪些需要優先處理的任務和付款？"></textarea>
+                <div><small>每次執行都會保留工具與 Audit 紀錄</small><button class="button primary" type="submit">✧ 執行 Agent</button></div>
+              </form>
+            </article>
+            <article id="operations-agent-result" class="panel agent-result">
+              <div class="agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>
             </article>
           </div>
         </section>

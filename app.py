@@ -11,6 +11,7 @@ from controllers import (
     communication_controller,
     crm_controller,
     operations_controller,
+    operations_agent_controller,
     payment_controller,
     reminder_controller,
     trip_controller,
@@ -66,5 +67,6 @@ app.include_router(payment_controller.router)
 app.include_router(ai_controller.router)
 app.include_router(reminder_controller.router)
 app.include_router(operations_controller.router)
+app.include_router(operations_agent_controller.router)
 app.include_router(communication_controller.router)
 app.include_router(audit_controller.router)

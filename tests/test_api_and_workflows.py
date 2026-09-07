@@ -19,6 +19,7 @@ from services.payment_provider import get_payment_provider
 from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
 from services.staff_policy import StaffPolicyConflict, ensure_staff_change_allowed
+from services.operations_agent_graph import run_operations_agent, select_tools
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
@@ -122,6 +123,7 @@ class ApiContractTests(unittest.TestCase):
             ("/api/communication-drafts/{draft_id}/templates/{template_id}", "post"),
             ("/api/audit-logs", "get"),
             ("/api/audit-logs/facets", "get"),
+            ("/api/operations-agent/runs", "post"),
         }
 
         for path, method in expected:
@@ -224,6 +226,40 @@ class StaffPolicyTests(unittest.TestCase):
         self.assertEqual("allowed@example.com", data["email"])
         self.assertEqual("[REDACTED]", data["auth"]["access_token"])
         self.assertEqual("[REDACTED]", data["auth"]["items"][0]["api_key"])
+
+
+class OperationsAgentTests(unittest.TestCase):
+    def test_question_selects_multiple_relevant_tools(self):
+        self.assertEqual(
+            ["overdue_tasks", "payment_followups"],
+            select_tools("今天有哪些逾期任務和未付款訂單？"),
+        )
+
+    def test_unknown_question_falls_back_to_overview(self):
+        self.assertEqual(["operations_overview"], select_tools("目前狀況如何？"))
+
+    def test_graph_executes_read_tools_and_applies_guardrail(self):
+        calls = []
+
+        def execute(tool):
+            calls.append(tool)
+            return {
+                "summary": {
+                    "active_members": 3,
+                    "active_requests": 2,
+                    "open_tasks": 1,
+                    "pending_payments": 1,
+                    "scheduled_reminders": 4,
+                },
+                "items": [],
+            }
+
+        result = run_operations_agent("給我營運總覽", execute)
+
+        self.assertEqual(["operations_overview"], calls)
+        self.assertTrue(result["guardrails"]["read_only_tools"])
+        self.assertFalse(result["guardrails"]["external_actions_executed"])
+        self.assertIn("tool:operations_overview", result["node_trace"])
 
 
 class WorkflowTests(unittest.TestCase):
