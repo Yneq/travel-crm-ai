@@ -16,6 +16,7 @@ const state = {
   paymentsByOrder: {},
   aiPlans: [],
   aiProviderStatus: null,
+  staffUsers: [],
   auditPage: { items: [], total: 0, limit: 50, offset: 0 },
   auditFacets: { entity_types: [], actions: [], actors: [] },
   auditFilters: {},
@@ -82,6 +83,8 @@ const labels = {
   retrying: "等待重試", dead_letter: "需人工介入",
   operational_reminder_scan: "營運提醒掃描",
   sent: "Mock 已寄送",
+  active: "啟用中", inactive: "已停用",
+  admin: "Admin", advisor: "Advisor", finance: "Finance",
 };
 
 const communicationSourceLabels = {
@@ -236,11 +239,13 @@ async function loadData() {
     );
     state.aiPlans = aiPlanLists.flat().sort((a, b) => b.id - a.id);
     if (state.user.role === "admin") {
-      [state.auditPage, state.auditFacets] = await Promise.all([
+      [state.staffUsers, state.auditPage, state.auditFacets] = await Promise.all([
+        api("/api/staff-users"),
         api(buildAuditPath(state.auditPage.offset || 0)),
         api("/api/audit-logs/facets"),
       ]);
     } else {
+      state.staffUsers = [];
       state.auditPage = { items: [], total: 0, limit: 50, offset: 0 };
       state.auditFacets = { entity_types: [], actions: [], actors: [] };
     }
@@ -286,6 +291,7 @@ function renderAll() {
   renderTripStudio();
   renderOrders();
   renderAIPlans();
+  renderStaff();
   renderAuditLogs();
   populateAuditFilters();
   populateFormOptions();
@@ -496,11 +502,32 @@ function renderAuditLogs() {
   $("#audit-next").disabled = page.offset + page.limit >= page.total;
 }
 
+function renderStaff() {
+  if (state.user?.role !== "admin") return;
+  $("#staff-table").innerHTML = state.staffUsers.map((staff) => {
+    const isSelf = staff.id === state.user.id;
+    const roleOptions = ["advisor", "finance", "admin"].map((role) =>
+      `<option value="${role}" ${staff.role === role ? "selected" : ""}>${labels[role]}</option>`
+    ).join("");
+    return `<tr>
+      <td><strong>${escapeHtml(staff.name)}</strong><br><small>${escapeHtml(staff.email)} · #${staff.id}</small></td>
+      <td><select class="staff-role-select" data-staff-role="${staff.id}" ${isSelf ? "disabled" : ""}>${roleOptions}</select></td>
+      <td><span class="status-badge ${staff.is_active ? "active" : "inactive"}">${staff.is_active ? labels.active : labels.inactive}</span></td>
+      <td>${formatDate(staff.created_at)}</td>
+      <td>${isSelf
+        ? '<span class="self-account">目前帳號</span>'
+        : `<button class="button ghost compact" data-staff-active="${staff.id}" data-next-active="${staff.is_active ? "false" : "true"}">${staff.is_active ? "停用帳號" : "重新啟用"}</button>`}
+      </td>
+    </tr>`;
+  }).join("");
+  $("#staff-empty").classList.toggle("hidden", state.staffUsers.length > 0);
+}
+
 function showSection(section) {
   $$(".workspace-section").forEach((element) => element.classList.add("hidden"));
   $(`#section-${section}`).classList.remove("hidden");
   $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.section === section));
-  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務", audit: "Audit Log" })[section];
+  $("#page-title").textContent = ({ overview: "營運總覽", members: "會員管理", requests: "需求 Pipeline", "ai-planning": "AI 行程規劃", itineraries: "行程與報價", orders: "訂單與付款", reminders: "營運提醒", tasks: "內部任務", staff: "員工權限", audit: "Audit Log" })[section];
 }
 
 function tripStatusOptions(trip) {
@@ -717,6 +744,66 @@ $("#member-form").addEventListener("submit", async (event) => {
     }) });
     form.reset(); form.closest("dialog").close(); await loadData(); showToast("會員已建立");
   } catch (error) { formError(form, error.message); }
+});
+
+$("#staff-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  try {
+    await api("/api/staff-users", {
+      method: "POST",
+      body: JSON.stringify({
+        name: values.name,
+        email: values.email,
+        role: values.role,
+        password: values.password,
+      }),
+    });
+    form.reset();
+    form.closest("dialog").close();
+    await loadData();
+    showSection("staff");
+    showToast("員工帳號已建立");
+  } catch (error) { formError(form, error.message); }
+});
+
+$("#staff-table").addEventListener("change", async (event) => {
+  const select = event.target.closest("[data-staff-role]");
+  if (!select) return;
+  select.disabled = true;
+  try {
+    await api(`/api/staff-users/${select.dataset.staffRole}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role: select.value }),
+    });
+    await loadData();
+    showSection("staff");
+    showToast("員工角色已更新");
+  } catch (error) {
+    await loadData();
+    showSection("staff");
+    showToast(error.message, true);
+  }
+});
+
+$("#staff-table").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-staff-active]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    await api(`/api/staff-users/${button.dataset.staffActive}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: button.dataset.nextActive === "true" }),
+    });
+    await loadData();
+    showSection("staff");
+    showToast(button.dataset.nextActive === "true" ? "員工帳號已啟用" : "員工帳號已停用");
+  } catch (error) {
+    await loadData();
+    showSection("staff");
+    showToast(error.message, true);
+  }
 });
 
 $("#request-form").addEventListener("submit", async (event) => {

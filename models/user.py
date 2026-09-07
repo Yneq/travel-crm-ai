@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class UserCreate(BaseModel):
@@ -9,6 +11,27 @@ class UserCreate(BaseModel):
 
 class StaffUserCreate(UserCreate):
     role: str = Field(pattern="^(admin|advisor|finance)$")
+
+
+class StaffUserUpdate(BaseModel):
+    role: str | None = Field(default=None, pattern="^(admin|advisor|finance)$")
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if self.role is None and self.is_active is None:
+            raise ValueError("role or is_active is required")
+        return self
+
+
+class StaffUserResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    role: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class LoginRequest(BaseModel):

@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/admin-assets/admin.css?v=12" />
-    <script src="/admin-assets/admin.js?v=12" defer></script>
+    <link rel="stylesheet" href="/admin-assets/admin.css?v=13" />
+    <script src="/admin-assets/admin.js?v=13" defer></script>
   </head>
   <body>
     <div class="ambient ambient-one"></div>
@@ -57,6 +57,7 @@
           <button class="nav-item" data-section="orders"><span>▤</span>訂單與付款</button>
           <button class="nav-item" data-section="reminders"><span>◷</span>營運提醒</button>
           <button class="nav-item" data-section="tasks"><span>✓</span>任務</button>
+          <button class="nav-item hidden" data-section="staff" data-admin-only><span>♙</span>員工權限</button>
           <button class="nav-item hidden" data-section="audit" data-admin-only><span>⌁</span>Audit Log</button>
         </nav>
         <div class="sidebar-footer">
@@ -153,6 +154,14 @@
             <footer class="audit-pagination"><button id="audit-prev" class="button ghost compact" type="button">← 上一頁</button><span id="audit-page-info">第 1 頁</span><button id="audit-next" class="button ghost compact" type="button">下一頁 →</button></footer>
           </article>
         </section>
+
+        <section id="section-staff" class="workspace-section hidden" data-admin-only>
+          <div class="section-toolbar"><p class="muted">帳號角色會在每次 API 請求重新確認；停用後，既有 Token 也會立即失效。</p><button class="button primary" data-dialog="staff-dialog">＋ 建立員工</button></div>
+          <article class="panel table-panel staff-panel">
+            <table><thead><tr><th>員工</th><th>角色</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead><tbody id="staff-table"></tbody></table>
+            <div id="staff-empty" class="empty-state hidden">尚未建立其他員工帳號。</div>
+          </article>
+        </section>
       </main>
     </div>
 
@@ -170,6 +179,21 @@
         </div>
         <p class="form-error"></p>
         <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立會員</button></footer>
+      </form>
+    </dialog>
+
+    <dialog id="staff-dialog">
+      <form id="staff-form" class="dialog-card">
+        <header><div><p class="eyebrow">ACCESS CONTROL</p><h2>建立員工帳號</h2></div><button type="button" class="icon-button close-dialog">×</button></header>
+        <div class="form-grid">
+          <label class="full">姓名<input name="name" required maxlength="100" /></label>
+          <label class="full">Email<input name="email" type="email" required /></label>
+          <label>角色<select name="role"><option value="advisor">Advisor</option><option value="finance">Finance</option><option value="admin">Admin</option></select></label>
+          <label>暫時密碼<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label>
+        </div>
+        <p class="muted dialog-notice">密碼只會送到後端產生 bcrypt Hash，不會寫入 Audit Log。</p>
+        <p class="form-error"></p>
+        <footer><button type="button" class="button ghost close-dialog">取消</button><button class="button primary" type="submit">建立員工</button></footer>
       </form>
     </dialog>
 

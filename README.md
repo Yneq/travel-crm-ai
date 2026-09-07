@@ -57,6 +57,8 @@ VoyageOps API.
 | Log in and issue a bearer token | `POST` | `/api/auth/login` |
 | Read the authenticated staff user | `GET` | `/api/users/me` |
 | Create a staff account (admin only) | `POST` | `/api/staff-users` |
+| List staff accounts and access state (admin only) | `GET` | `/api/staff-users` |
+| Change a staff role or active state (admin only) | `PATCH` | `/api/staff-users/{staff_id}` |
 
 Login uses `POST` because credentials are submitted to create an authentication
 result. `PUT` remains appropriate for the legacy presigned S3 upload because
@@ -64,7 +66,11 @@ that request writes the object identified by the presigned URL.
 
 Bootstrap registration closes after the first staff account is created. That
 first account receives the `admin` role; later staff accounts must be created by
-an authenticated admin.
+an authenticated admin. The Admin UI supports `advisor`, `finance`, and `admin`
+roles plus account activation. It blocks self-demotion/self-deactivation and
+preserves at least one active administrator. Authorization revalidates the
+current database role and active state on every authenticated API request, so a
+revoked account cannot continue using an older JWT.
 
 ### CRM
 
@@ -343,10 +349,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **51 automated tests**.
+The current suite passes **56 automated tests**.
 
 ## Next milestone
 
-1. Expand evaluation fixtures and compare model/Prompt versions
-2. Add staff-account and approval-policy administration
+1. Build a tool-using CRM Operations Agent on the guarded service APIs
+2. Expand evaluation fixtures and compare model/prompt versions
 3. Production communication/payment adapters, monitoring, and secret management

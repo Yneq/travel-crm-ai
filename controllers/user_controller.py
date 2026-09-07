@@ -8,7 +8,16 @@ from dependencies import (
     require_roles,
     verify_password,
 )
-from models.user import LoginRequest, StaffUserCreate, TokenResponse, UserCreate, UserResponse
+from models.user import (
+    LoginRequest,
+    StaffUserCreate,
+    StaffUserResponse,
+    StaffUserUpdate,
+    TokenResponse,
+    UserCreate,
+    UserResponse,
+)
+from repositories import staff_repository
 
 
 router = APIRouter(tags=["authentication"])
@@ -123,6 +132,40 @@ def create_staff_user(
         ) from exc
     finally:
         cursor.close()
+        db.close()
+
+
+@router.get("/api/staff-users", response_model=list[StaffUserResponse])
+def list_staff_users(
+    current_user: dict = Depends(require_roles("admin")),
+):
+    db = get_db()
+    try:
+        return staff_repository.list_staff_users(db)
+    finally:
+        db.close()
+
+
+@router.patch("/api/staff-users/{staff_id}", response_model=StaffUserResponse)
+def update_staff_user(
+    staff_id: int,
+    payload: StaffUserUpdate,
+    current_user: dict = Depends(require_roles("admin")),
+):
+    db = get_db()
+    try:
+        return staff_repository.update_staff_user(
+            db,
+            staff_id,
+            role=payload.role,
+            is_active=payload.is_active,
+            actor_id=current_user["id"],
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except staff_repository.StaffConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    finally:
         db.close()
 
 

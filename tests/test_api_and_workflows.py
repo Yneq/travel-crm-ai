@@ -18,6 +18,7 @@ from models.communication import CommunicationStatus
 from services.payment_provider import get_payment_provider
 from services.communication_provider import get_communication_provider
 from services.communication_policy import MakerCheckerConflict, ensure_independent_approver
+from services.staff_policy import StaffPolicyConflict, ensure_staff_change_allowed
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
@@ -78,6 +79,8 @@ class ApiContractTests(unittest.TestCase):
     def test_crm_routes_are_exposed(self):
         expected = {
             ("/api/staff-users", "post"),
+            ("/api/staff-users", "get"),
+            ("/api/staff-users/{staff_id}", "patch"),
             ("/api/members", "post"),
             ("/api/members", "get"),
             ("/api/members/{member_id}", "patch"),
@@ -143,6 +146,74 @@ class SecurityTests(unittest.TestCase):
         payload = dependencies.decode_access_token(token)
         self.assertEqual(42, payload["id"])
         self.assertEqual("advisor", payload["role"])
+
+    @patch("dependencies.mysql.connector.connect")
+    def test_current_user_refreshes_role_from_database(self, connect):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = {
+            "email": "advisor@example.com",
+            "is_active": True,
+            "role": "advisor",
+        }
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+        connect.return_value = connection
+        token = dependencies.create_access_token(
+            {"id": 42, "sub": "42", "role": "admin"}
+        )
+
+        payload = dependencies.get_current_user(
+            SimpleNamespace(scheme="Bearer", credentials=token)
+        )
+
+        self.assertEqual("advisor", payload["role"])
+        cursor.close.assert_called_once()
+        connection.close.assert_called_once()
+
+    @patch("dependencies.mysql.connector.connect")
+    def test_inactive_user_existing_token_is_rejected(self, connect):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = {
+            "email": "inactive@example.com",
+            "is_active": False,
+            "role": "advisor",
+        }
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+        connect.return_value = connection
+        token = dependencies.create_access_token(
+            {"id": 42, "sub": "42", "role": "advisor"}
+        )
+
+        with self.assertRaisesRegex(Exception, "inactive"):
+            dependencies.get_current_user(
+                SimpleNamespace(scheme="Bearer", credentials=token)
+            )
+
+
+class StaffPolicyTests(unittest.TestCase):
+    def test_admin_cannot_change_own_access(self):
+        with self.assertRaises(StaffPolicyConflict):
+            ensure_staff_change_allowed(
+                actor_id=1, target_id=1, current_role="admin",
+                current_active=True, next_role="advisor", next_active=True,
+                active_admin_count=2,
+            )
+
+    def test_last_active_admin_cannot_be_removed(self):
+        with self.assertRaises(StaffPolicyConflict):
+            ensure_staff_change_allowed(
+                actor_id=2, target_id=1, current_role="admin",
+                current_active=True, next_role="admin", next_active=False,
+                active_admin_count=1,
+            )
+
+    def test_another_staff_member_can_be_updated(self):
+        ensure_staff_change_allowed(
+            actor_id=1, target_id=2, current_role="advisor",
+            current_active=True, next_role="finance", next_active=True,
+            active_admin_count=1,
+        )
 
     def test_audit_output_redacts_nested_credentials(self):
         data = redact_audit_data({

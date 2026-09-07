@@ -121,7 +121,38 @@ def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return payload
+    missing = [key for key, value in rds_db_config.items() if not value]
+    if missing:
+        raise RuntimeError(
+            f"Missing database configuration: {', '.join(sorted(missing))}"
+        )
+    # Use a short-lived connection so route-level database dependencies do not
+    # compete with authentication for the same small application pool.
+    connection = mysql.connector.connect(**rds_db_config)
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT su.email, su.is_active, r.code AS role
+            FROM staff_users su
+            JOIN roles r ON r.id = su.role_id
+            WHERE su.id = %s
+            """,
+            (payload.get("id"),),
+        )
+        user = cursor.fetchone()
+        if user is None or not user["is_active"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User is inactive or no longer exists",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        payload["email"] = user["email"]
+        payload["role"] = user["role"]
+        return payload
+    finally:
+        cursor.close()
+        connection.close()
 
 
 def require_roles(*allowed_roles: str) -> Callable:
