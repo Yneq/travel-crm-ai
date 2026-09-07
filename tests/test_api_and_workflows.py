@@ -29,6 +29,7 @@ from services.operations_agent_provider import (
     OperationsAgentProviderError,
     validate_model_answer,
 )
+from repositories.operations_agent_repository import list_action_proposals
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
 from services.reminder_rules import build_operational_reminder
@@ -240,6 +241,33 @@ class StaffPolicyTests(unittest.TestCase):
 
 
 class OperationsAgentTests(unittest.TestCase):
+    def test_proposal_list_returns_page_metadata_and_effective_status(self):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = {"total": 1}
+        cursor.fetchall.return_value = [{
+            "id": 9,
+            "status": "pending",
+            "effective_status": "expired",
+            "action_payload": '{"title": "Follow up ORD-9"}',
+        }]
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+
+        page = list_action_proposals(
+            connection, status="expired", search="ORD-9", limit=8, offset=0
+        )
+
+        self.assertEqual(1, page["total"])
+        self.assertEqual("expired", page["items"][0]["status"])
+        self.assertNotIn("effective_status", page["items"][0])
+        self.assertEqual(2, cursor.execute.call_count)
+
+    def test_proposal_endpoint_exposes_queue_query_parameters(self):
+        operation = app.openapi()["paths"]["/api/operations-agent/proposals"]["get"]
+        parameter_names = {parameter["name"] for parameter in operation["parameters"]}
+
+        self.assertTrue({"status", "search", "limit", "offset"}.issubset(parameter_names))
+
     def test_rejected_proposal_requires_reviewer_notes(self):
         from models.operations_agent import ActionProposalReview
 

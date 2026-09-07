@@ -99,7 +99,10 @@ def start_run(connection, question: str, initiated_by: int) -> int:
 def _decode_proposal(row: dict | None) -> dict | None:
     if row is not None and isinstance(row.get("action_payload"), str):
         row["action_payload"] = json.loads(row["action_payload"])
-    if (
+    effective_status = row.pop("effective_status", None) if row is not None else None
+    if effective_status:
+        row["status"] = effective_status
+    elif (
         row is not None
         and row.get("status") == "pending"
         and row.get("expires_at")
@@ -181,18 +184,55 @@ def complete_run(connection, run_id: int, output: dict, actor_id: int) -> dict:
         cursor.close()
 
 
-def list_action_proposals(connection, limit: int = 50) -> list[dict]:
+def list_action_proposals(
+    connection,
+    status: str | None = None,
+    search: str | None = None,
+    limit: int = 8,
+    offset: int = 0,
+) -> dict:
     cursor = connection.cursor(dictionary=True)
     try:
-        cursor.execute(
-            """
-            SELECT * FROM agent_action_proposals
-            ORDER BY status = 'pending' DESC, created_at DESC
-            LIMIT %s
-            """,
-            (limit,),
+        search_pattern = f"%{(search or '').strip()}%"
+        where = """
+            WHERE (%s IS NULL OR effective_status = %s)
+              AND (
+                %s = '%'
+                OR JSON_UNQUOTE(JSON_EXTRACT(action_payload, '$.title')) LIKE %s
+                OR JSON_UNQUOTE(JSON_EXTRACT(action_payload, '$.description')) LIKE %s
+                OR JSON_UNQUOTE(JSON_EXTRACT(action_payload, '$.order_number')) LIKE %s
+              )
+        """
+        parameters = (
+            status, status, search_pattern, search_pattern, search_pattern, search_pattern
         )
-        return [_decode_proposal(row) for row in cursor.fetchall()]
+        source = """
+            (
+              SELECT proposals.*,
+                     CASE
+                       WHEN status = 'pending' AND expires_at <= UTC_TIMESTAMP() THEN 'expired'
+                       ELSE status
+                     END AS effective_status
+              FROM agent_action_proposals proposals
+            ) filtered_proposals
+        """
+        cursor.execute(f"SELECT COUNT(*) AS total FROM {source} {where}", parameters)
+        total = cursor.fetchone()["total"]
+        cursor.execute(
+            f"""
+            SELECT * FROM {source}
+            {where}
+            ORDER BY effective_status = 'pending' DESC, created_at DESC
+            LIMIT %s OFFSET %s
+            """,
+            (*parameters, limit, offset),
+        )
+        return {
+            "items": [_decode_proposal(row) for row in cursor.fetchall()],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
     finally:
         cursor.close()
 

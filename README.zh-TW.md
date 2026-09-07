@@ -36,7 +36,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
   依據的回答與節點 Trace，支援 Gemini Function Calling 與本機 Fallback，並由
   Human-in-the-loop Guardrail 禁止直接執行外部動作
 - Agent 寫入提案：只有人工核准後才建立內部跟進任務，並具 24 小時期限、
-  退回理由必填、來源狀態重驗、防重複執行及原子 Audit 紀錄
+  退回理由必填、來源狀態重驗、防重複執行、原子 Audit 紀錄，以及可搜尋、
+  依狀態篩選及分頁的審核佇列
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
@@ -118,7 +119,7 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 篩選及分頁查詢 Audit Log（限管理員） | `GET` | `/api/audit-logs` |
 | Audit Log 篩選選項（限管理員） | `GET` | `/api/audit-logs/facets` |
 | 執行唯讀 CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
-| 查詢 Agent Action Proposals | `GET` | `/api/operations-agent/proposals` |
+| 搜尋／篩選及分頁查詢 Agent Proposals | `GET` | `/api/operations-agent/proposals` |
 | 核准或退回 Agent Proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
@@ -227,6 +228,10 @@ LangGraph Router，因此外部模型暫時失效時仍可查詢核心營運資�
 將提案標記為 `executed` 及寫入 Audit Log。每筆 Proposal 有 24 小時有效期限；
 審核時 API 會再次檢查，過期後阻擋執行並記錄為 `expired`。退回必須填寫理由，
 且不會改變任務資料。Proposal 不允許執行付款、預訂、建立訂單或對外通訊。
+
+審核佇列支援 `status`、`search`、`limit` 與 `offset` Query Parameters。
+搜尋範圍包含提案標題、說明與訂單編號；`expired` 狀態會先在資料庫查詢中一致
+計算，再進行篩選及分頁。
 
 ## AI Follow-up Copilot
 
@@ -338,10 +343,10 @@ python -m unittest discover -v tests
 不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
 API 暴露與人工審核的終止狀態。
 
-目前共通過 **66 項自動測試**。
+目前共通過 **68 項自動測試**。
 
 ## 下一階段
 
 1. 擴充 Live-model Evaluation，並比較不同 Model／Prompt 版本
-2. 加入 Proposal 搜尋、狀態篩選與審核佇列分頁
+2. 加入 Proposal 負責人與批次佇列分流
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management

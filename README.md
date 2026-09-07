@@ -40,7 +40,8 @@ operational data with guarded model-driven automation.
   human-in-the-loop guardrails
 - Human-approved Agent write proposals for internal follow-up tasks, with
   24-hour expiry, required rejection reasons, stale-source validation,
-  duplicate-execution protection, and atomic audit records
+  duplicate-execution protection, atomic audit records, and a searchable,
+  status-filtered review queue with pagination
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
@@ -127,7 +128,7 @@ revoked account cannot continue using an older JWT.
 | Filtered, paginated audit history (admin only) | `GET` | `/api/audit-logs` |
 | Audit filter facets (admin only) | `GET` | `/api/audit-logs/facets` |
 | Run the read-only CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
-| List Agent action proposals | `GET` | `/api/operations-agent/proposals` |
+| Search/filter paginated Agent action proposals | `GET` | `/api/operations-agent/proposals` |
 | Approve or reject an Agent proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
@@ -260,6 +261,11 @@ review time and records blocked attempts as `expired`. Rejection requires a
 reviewer reason and leaves task data unchanged. No proposal can execute a
 payment, booking, order, or external communication.
 
+The review queue accepts `status`, `search`, `limit`, and `offset` query
+parameters. Search covers proposal titles, descriptions, and order numbers;
+`expired` is calculated consistently in the database query before filtering
+and pagination.
+
 ## AI Follow-up Copilot
 
 An active reminder can generate one idempotent follow-up draft containing an
@@ -385,10 +391,10 @@ provider behavior, PDF generation, schema invariants, and valid or invalid
 workflow transitions. The reminder tests also verify rule output, deduplication
 schema, API exposure, and terminal human-review states.
 
-The current suite passes **66 automated tests**.
+The current suite passes **68 automated tests**.
 
 ## Next milestone
 
 1. Expand live-model evaluation and compare model/prompt versions
-2. Add proposal search, status filters, and review-queue pagination
+2. Add proposal ownership and bulk queue triage
 3. Production communication/payment adapters, monitoring, and secret management

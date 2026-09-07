@@ -1,9 +1,11 @@
 import os
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from dependencies import get_current_user, get_db_connection, require_roles
 from models.operations_agent import (
+    ActionProposalPage,
     ActionProposalResponse,
     ActionProposalReview,
     OperationsAgentRequest,
@@ -37,12 +39,18 @@ def create_operations_agent_run(
         raise HTTPException(status_code=500, detail="Operations Agent could not complete the request") from exc
 
 
-@router.get("/proposals", response_model=list[ActionProposalResponse])
+@router.get("/proposals", response_model=ActionProposalPage)
 def list_action_proposals(
+    status: Literal["pending", "executed", "rejected", "expired"] | None = None,
+    search: str | None = Query(default=None, max_length=100),
+    limit: int = Query(default=8, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
     connection=Depends(get_db_connection),
     _current_user: dict = Depends(get_current_user),
 ):
-    return repository.list_action_proposals(connection)
+    return repository.list_action_proposals(
+        connection, status=status, search=search, limit=limit, offset=offset
+    )
 
 
 @router.post("/proposals/{proposal_id}/review", response_model=ActionProposalResponse)

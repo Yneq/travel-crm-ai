@@ -31,6 +31,13 @@ class ActionProposalResponse(BaseModel):
     updated_at: datetime
 
 
+class ActionProposalPage(BaseModel):
+    items: list[ActionProposalResponse]
+    total: int
+    limit: int
+    offset: int
+
+
 class ActionProposalReview(BaseModel):
     decision: Literal["approved", "rejected"]
     notes: str | None = Field(default=None, max_length=1000)

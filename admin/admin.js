@@ -18,6 +18,8 @@ const state = {
   aiProviderStatus: null,
   latestAgentRun: null,
   actionProposals: [],
+  proposalPage: { items: [], total: 0, limit: 8, offset: 0 },
+  proposalFilters: { status: "", search: "" },
   staffUsers: [],
   auditPage: { items: [], total: 0, limit: 50, offset: 0 },
   auditFacets: { entity_types: [], actions: [], actors: [] },
@@ -210,7 +212,7 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus, state.actionProposals] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus, state.proposalPage] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
@@ -223,8 +225,9 @@ async function loadData() {
       api("/api/quotes"),
       api("/api/orders"),
       api("/api/ai/providers/status"),
-      api("/api/operations-agent/proposals"),
+      api(buildProposalPath()),
     ]);
+    state.actionProposals = state.proposalPage.items;
     const communicationVersionLists = await Promise.all(
       state.communicationDrafts.map((draft) => api(`/api/communication-drafts/${draft.id}/versions`))
     );
@@ -260,6 +263,27 @@ async function loadData() {
       state.selectedTrip = null;
     }
     renderAll();
+  } finally {
+    setSyncing(false);
+  }
+}
+
+function buildProposalPath(offset = state.proposalPage.offset || 0) {
+  const parameters = new URLSearchParams({
+    limit: String(state.proposalPage.limit || 8),
+    offset: String(offset),
+  });
+  if (state.proposalFilters.status) parameters.set("status", state.proposalFilters.status);
+  if (state.proposalFilters.search) parameters.set("search", state.proposalFilters.search);
+  return `/api/operations-agent/proposals?${parameters}`;
+}
+
+async function loadActionProposals(offset = 0) {
+  setSyncing(true);
+  try {
+    state.proposalPage = await api(buildProposalPath(offset));
+    state.actionProposals = state.proposalPage.items;
+    renderOperationsAgent();
   } finally {
     setSyncing(false);
   }
@@ -322,13 +346,36 @@ function renderOperationsAgent() {
     <details class="agent-trace"><summary>查看 LangGraph 執行路徑</summary><ol>${run.node_trace.map((node) => `<li>${escapeHtml(node)}</li>`).join("")}</ol></details>`
     : '<div class="agent-empty compact-agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>';
   const canReview = ["admin", "advisor"].includes(state.user?.role);
-  const proposals = state.actionProposals.slice(0, 8);
-  const proposalsHtml = proposals.length ? `<div class="agent-proposals"><div class="agent-proposals-heading"><div><p class="eyebrow">WRITE PROPOSALS</p><h3>待人工決定的動作</h3></div><small>AI 不會直接寫入</small></div>${proposals.map((proposal) => {
+  const proposals = state.actionProposals;
+  const page = state.proposalPage;
+  const pageStart = page.total ? page.offset + 1 : 0;
+  const pageEnd = Math.min(page.offset + page.limit, page.total);
+  const proposalCards = proposals.length ? proposals.map((proposal) => {
     const payload = proposal.action_payload;
     const pending = proposal.status === "pending";
     const reviewNote = proposal.review_notes ? `<small class="proposal-review-note">審核備註：${escapeHtml(proposal.review_notes)}</small>` : "";
     return `<article class="agent-proposal-card ${escapeHtml(proposal.status)}"><div><strong>${escapeHtml(payload.title)}</strong><p>${escapeHtml(payload.description)}</p><small>${escapeHtml(labels[payload.priority] || payload.priority)}優先 · 任務期限 ${formatDate(payload.due_at, true)}</small><small>提案有效至 ${formatDate(proposal.expires_at, true)}</small>${reviewNote}</div><div class="proposal-actions"><span class="status-badge ${escapeHtml(proposal.status)}">${escapeHtml({ pending: "待核准", executed: "已建立任務", rejected: "已退回", expired: "已過期" }[proposal.status] || proposal.status)}</span>${pending && canReview ? `<button class="button primary compact" data-review-proposal="${proposal.id}" data-decision="approved">核准建立</button><button class="button ghost compact" data-review-proposal="${proposal.id}" data-decision="rejected">退回</button>` : ""}</div></article>`;
-  }).join("")}</div>` : "";
+  }).join("") : '<div class="proposal-empty">目前條件下沒有提案。</div>';
+  const proposalsHtml = `<div class="agent-proposals">
+    <div class="agent-proposals-heading"><div><p class="eyebrow">WRITE PROPOSALS</p><h3>人工審核佇列</h3></div><small>AI 不會直接寫入</small></div>
+    <form id="proposal-filter-form" class="proposal-filter-bar">
+      <input name="search" value="${escapeHtml(state.proposalFilters.search)}" maxlength="100" placeholder="搜尋任務、訂單或說明" />
+      <select name="status">
+        <option value="">全部狀態</option>
+        <option value="pending" ${state.proposalFilters.status === "pending" ? "selected" : ""}>待核准</option>
+        <option value="executed" ${state.proposalFilters.status === "executed" ? "selected" : ""}>已建立任務</option>
+        <option value="rejected" ${state.proposalFilters.status === "rejected" ? "selected" : ""}>已退回</option>
+        <option value="expired" ${state.proposalFilters.status === "expired" ? "selected" : ""}>已過期</option>
+      </select>
+      <button class="button ghost compact" type="submit">套用</button>
+    </form>
+    <div class="proposal-result-count">顯示 ${pageStart}–${pageEnd} 筆，共 ${page.total} 筆</div>
+    ${proposalCards}
+    <div class="proposal-pagination">
+      <button class="button ghost compact" data-proposal-page="${Math.max(0, page.offset - page.limit)}" ${page.offset === 0 ? "disabled" : ""}>← 上一頁</button>
+      <button class="button ghost compact" data-proposal-page="${page.offset + page.limit}" ${page.offset + page.limit >= page.total ? "disabled" : ""}>下一頁 →</button>
+    </div>
+  </div>`;
   container.innerHTML = resultHtml + proposalsHtml;
 }
 
@@ -787,11 +834,7 @@ $("#operations-agent-form").addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ question: $("#operations-agent-question").value.trim() }),
     });
-    state.actionProposals = [
-      ...(state.latestAgentRun.proposed_actions || []),
-      ...state.actionProposals,
-    ];
-    renderOperationsAgent();
+    await loadActionProposals(0);
     showToast("Agent 已完成唯讀分析");
   } catch (error) { showToast(error.message, true); }
   finally {
@@ -800,7 +843,23 @@ $("#operations-agent-form").addEventListener("submit", async (event) => {
   }
 });
 
-$("#operations-agent-result").addEventListener("click", (event) => {
+$("#operations-agent-result").addEventListener("submit", async (event) => {
+  if (event.target.id !== "proposal-filter-form") return;
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(event.target));
+  state.proposalFilters = {
+    status: values.status,
+    search: values.search.trim(),
+  };
+  await loadActionProposals(0);
+});
+
+$("#operations-agent-result").addEventListener("click", async (event) => {
+  const pageButton = event.target.closest("[data-proposal-page]");
+  if (pageButton && !pageButton.disabled) {
+    await loadActionProposals(Number(pageButton.dataset.proposalPage));
+    return;
+  }
   const button = event.target.closest("[data-review-proposal]");
   if (!button) return;
   const proposal = state.actionProposals.find((item) => item.id === Number(button.dataset.reviewProposal));
