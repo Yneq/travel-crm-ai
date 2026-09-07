@@ -31,8 +31,8 @@ operational data with guarded model-driven automation.
 - Versioned communication drafts with approval reset on edit, maker-checker
   separation, named audit actors, and idempotent local-only Mock Email delivery
 - Privacy-safe communication templates and immutable content-version snapshots
-- Versioned six-case AI regression set covering schema, guardrails, privacy,
-  unsafe operational claims, and latency
+- Versioned 12-case AI regression set covering schema, tool selection, guardrails,
+  privacy, unsafe operational claims, provider fallback, and latency
 - Admin-only Audit Log dashboard with actor/entity/action/date filters, pagination,
   before/after details, and recursive credential redaction
 - LangGraph CRM Operations Agent with intent routing, a multi-step read-only tool
@@ -296,11 +296,13 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 ```
 
 The checked-in [`evals/baseline.local.json`](evals/baseline.local.json) records
-the initial result: **6/6 cases passed**, with 100% schema, guardrail, privacy,
-and explicit claim-safety checks. The fixtures cover three itinerary-planning
-and three follow-up scenarios. This result verifies defined contracts only; it
-does not claim subjective itinerary quality, real-time supplier accuracy, or
-production-network performance.
+the deterministic result: **12/12 cases passed**, with 100% schema, guardrail,
+privacy, and explicit claim-safety checks. The fixtures cover three itinerary-
+planning, three follow-up, and six Operations Agent scenarios. The Agent subset
+also records 100% exact tool-selection accuracy on those six project-specific
+prompts. This result verifies defined contracts only; it does not claim general
+language understanding, subjective itinerary quality, real-time supplier
+accuracy, or production-network performance.
 
 Gemini evaluation is intentionally opt-in because it makes external requests:
 
@@ -372,6 +374,6 @@ The current suite passes **62 automated tests**.
 
 ## Next milestone
 
-1. Expand Agent evaluation fixtures and compare model/prompt versions
-2. Add explicit human-approved write proposals for selected Agent actions
+1. Add explicit human-approved write proposals for selected Agent actions
+2. Expand live-model evaluation and compare model/prompt versions
 3. Production communication/payment adapters, monitoring, and secret management

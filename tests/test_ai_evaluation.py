@@ -13,10 +13,14 @@ class AIEvaluationTests(unittest.TestCase):
 
         report = run_evaluation(fixtures, "local")
 
-        self.assertEqual(6, report["overall"]["case_count"])
-        self.assertEqual(6, report["overall"]["passed_count"])
+        self.assertEqual(12, report["overall"]["case_count"])
+        self.assertEqual(12, report["overall"]["passed_count"])
         self.assertEqual(1.0, report["overall"]["privacy_pass_rate"])
         self.assertEqual(1.0, report["overall"]["guardrail_pass_rate"])
+        self.assertEqual(
+            1.0,
+            report["workflows"]["operations_agent"]["summary"]["tool_selection_accuracy"],
+        )
 
     def test_risky_operational_claim_is_detected(self):
         self.assertTrue(contains_risky_claim({"message_body": "您的訂單已完成付款"}))

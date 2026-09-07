@@ -28,7 +28,8 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
 - 版本化通訊草稿：編輯後撤銷核准、maker-checker 角色分離、具名稽核人員，
   並提供具 Idempotency 的本機 Mock Email
 - 具隱私 Allowlist 的通訊範本與不可變內容版本快照
-- 具版本的 6 案例 AI Regression Set：評估 Schema、Guardrail、隱私、危險營運宣稱與延遲
+- 具版本的 12 案例 AI Regression Set：評估 Schema、工具選擇、Guardrail、隱私、
+  危險營運宣稱、Provider Fallback 與延遲
 - 限 Admin 使用的 Audit Log 儀表板：支援操作人／資源／動作／日期篩選、分頁、
   Before／After 明細及遞迴敏感憑證遮蔽
 - LangGraph CRM Operations Agent：依問題選擇多個唯讀工具、逐步執行、產生有資料
@@ -257,10 +258,12 @@ Placeholder；未知或缺少的欄位會直接拒絕，不會靜默產生不完
 python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.json
 ```
 
-Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存第一份
-結果：**6/6 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查皆為
-100%。Fixtures 包含 3 個行程規劃與 3 個 Follow-up 情境。這個結果只證明已定義的
-Contract，不代表主觀行程品質、即時供應商資訊或 Production Network 效能。
+Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存可重現
+結果：**12/12 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
+皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 6 個 Operations Agent
+情境；Agent 子集在這 6 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
+也是 100%。這個結果只證明已定義的 Contract，不代表通用語意理解、主觀行程品質、
+即時供應商資訊或 Production Network 效能。
 
 Gemini 評估會呼叫外部服務，因此必須明確加入 Opt-in 參數：
 
@@ -328,6 +331,6 @@ API 暴露與人工審核的終止狀態。
 
 ## 下一階段
 
-1. 擴充 Agent Evaluation Fixtures，並比較不同 Model／Prompt 版本
-2. 為特定 Agent 動作加入明確的人工核准 Write Proposal
+1. 為特定 Agent 動作加入明確的人工核准 Write Proposal
+2. 擴充 Live-model Evaluation，並比較不同 Model／Prompt 版本
 3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management
