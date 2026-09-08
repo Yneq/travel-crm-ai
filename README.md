@@ -6,6 +6,29 @@ VoyageOps AI is an API-first travel CRM and operations platform evolved from the
 Taipei Day Trip booking project. It combines reliable backend contracts and
 operational data with guarded model-driven automation.
 
+## Product walkthrough
+
+### Operations overview
+
+The main workspace brings active members, travel requests, priority tasks, and
+current operational risk into one staff-facing dashboard.
+
+![VoyageOps AI operations overview](docs/images/admin-overview.jpg)
+
+### Human-controlled CRM Operations Agent
+
+The LangGraph Agent can inspect CRM state through read-only tools. Requested
+writes become assigned, expiring proposals with SLA metrics and human review.
+
+![CRM Operations Agent and proposal SLA dashboard](docs/images/operations-agent.jpg)
+
+### Reminder and follow-up workflow
+
+Rule-based reminders, AI-assisted drafts, reviewer decisions, background jobs,
+and fail-closed integration status stay visible in one operations queue.
+
+![Operations reminder and AI follow-up workflow](docs/images/operations-reminders.jpg)
+
 ## Current milestone
 
 - Staff authentication with bcrypt password hashing and JWT bearer tokens

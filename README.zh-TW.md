@@ -6,6 +6,29 @@ VoyageOps AI 是一套 API-first 的高端旅遊 CRM 與營運管理平台，由
 Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約與營運資料模型，
 再導入模型驅動的 AI 自動化。
 
+## 使用者介面
+
+### 營運總覽
+
+主工作區集中顯示有效會員、進行中需求、優先任務與目前營運風險，讓內部人員
+不需要切換多套工具就能掌握進度。
+
+![VoyageOps AI 營運總覽](docs/images/admin-overview.jpg)
+
+### Human-in-the-loop CRM Operations Agent
+
+LangGraph Agent 只能透過唯讀工具查詢 CRM。涉及資料寫入時，系統會改為建立具
+負責人、期限與 SLA 指標的 Proposal，必須由人員核准後才能執行。
+
+![CRM Operations Agent 與 Proposal SLA 儀表板](docs/images/operations-agent.jpg)
+
+### 營運提醒與 AI 跟進流程
+
+規則提醒、AI 草稿、人工審核、背景工作及 Fail-closed Integration Status，都會
+呈現在同一個營運佇列中。
+
+![營運提醒與 AI Follow-up 流程](docs/images/operations-reminders.jpg)
+
 ## 目前完成範圍
 
 - 使用 bcrypt 密碼雜湊與 JWT Bearer Token 的員工驗證
