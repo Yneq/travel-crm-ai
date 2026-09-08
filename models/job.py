@@ -33,3 +33,16 @@ class WorkerStatusResponse(BaseModel):
     retrying: int
     completed: int
     dead_letter: int
+
+
+class IntegrationComponentStatus(BaseModel):
+    component: str
+    mode: str
+    configured: bool
+    external_actions_enabled: bool
+    note: str
+
+
+class IntegrationStatusResponse(BaseModel):
+    production_ready: bool
+    components: list[IntegrationComponentStatus]

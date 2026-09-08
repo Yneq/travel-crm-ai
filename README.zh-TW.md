@@ -37,11 +37,15 @@ Taipei Day Trip 訂購專案演進而來。系統先建立可靠的後端合約�
   Human-in-the-loop Guardrail 禁止直接執行外部動作
 - Agent 寫入提案：只有人工核准後才建立內部跟進任務，並具 24 小時期限、
   退回理由必填、來源狀態重驗、防重複執行、原子 Audit 紀錄，以及可搜尋、
-  依狀態篩選及分頁的審核佇列、負責人與批次分流
+  依狀態篩選及分頁的審核佇列、負責人、批次分流、SLA 指標與防重複到期提醒
 - Trips、Quotes、Orders、Payments、Documents、Reminders、AI Runs 與
   第三方 Integration Events 的資料庫結構
 - 獨立 Background Worker：Redis 排程、MySQL 恢復、指數退避重試與 Dead Letter
+- Request Correlation ID、Structured Request Log、Route-level Prometheus
+  Counter，以及分離的 Liveness／Readiness Check
+- 明確的 Integration Readiness 狀態，本機金流與 Email Adapter 維持 Fail-closed
 - 使用 Docker Compose 建立本機 MySQL、Redis、API 與 Worker 環境
+- GitHub Actions CI，自動執行 Python 測試與 Admin JavaScript 語法檢查
 - `/docs` OpenAPI 文件
 - `/admin` 瀏覽器營運管理介面
 
@@ -107,6 +111,7 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 核准或退回跟進草稿 | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
 | 背景工作紀錄 | `GET` | `/api/operations/jobs` |
 | Worker 與 Queue 狀態 | `GET` | `/api/operations/worker/status` |
+| 外部整合 Readiness | `GET` | `/api/operations/integrations/status` |
 | 重新排程 Dead Letter（限管理員） | `POST` | `/api/operations/jobs/{job_id}/retry` |
 | 通訊草稿列表 | `GET` | `/api/communication-drafts` |
 | 由已核准 AI 輸出建立可編輯草稿 | `POST` | `/api/reminders/{reminder_id}/communication-draft` |
@@ -121,6 +126,7 @@ Presigned URL 上傳保留 `PUT`，因為該請求是在寫入 URL 所指定的�
 | 執行唯讀 CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
 | 搜尋／篩選及分頁查詢 Agent Proposals | `GET` | `/api/operations-agent/proposals` |
 | 批次指派或解除 Agent Proposals | `POST` | `/api/operations-agent/proposal-assignments` |
+| Agent Proposal SLA 指標 | `GET` | `/api/operations-agent/proposal-metrics` |
 | 核准或退回 Agent Proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 寫入 CRM 資料需要 `admin` 或 `advisor` 角色。已登入的 `finance` 使用者可以
@@ -330,6 +336,9 @@ Docker Compose 在開發環境使用 Uvicorn Reload Mode，Python 程式變更�
 - Admin Dashboard：<http://localhost:8080/admin>
 - Swagger UI：<http://localhost:8080/docs>
 - Health Check：<http://localhost:8080/health>
+- Liveness：<http://localhost:8080/health/live>
+- Dependency Readiness：<http://localhost:8080/health/ready>
+- Prometheus Metrics：<http://localhost:8080/metrics>
 
 Migration Runner 會把每個檔案的 Checksum 寫入 `schema_migrations`，因此既有
 Volume 可直接取得新 Migration，不需要刪除本機資料。只有刻意重設所有資料時，
@@ -341,15 +350,22 @@ Volume 可直接取得新 Migration，不需要刪除本機資料。只有刻意
 python -m unittest discover -v tests
 ```
 
-目前測試涵蓋 REST Route Contract、Health／OpenAPI、密碼雜湊、JWT Round Trip、
-前端驗證 Endpoint、Payment Provider、PDF 產生、Schema Invariant，以及合法與
-不合法的 Workflow Transition。提醒測試另外涵蓋規則輸出、防重複 Schema、
-API 暴露與人工審核的終止狀態。
+目前測試涵蓋 REST Route Contract、Health／OpenAPI／Metrics、Request Correlation
+Header、密碼雜湊、JWT Round Trip、前端驗證 Endpoint、Payment Provider、PDF
+產生、Schema Invariant、Integration Fail-closed 狀態，以及合法與不合法的
+Workflow Transition。Reminder 與 Agent 測試另外涵蓋規則輸出、防重複、Proposal
+SLA 統計、指派、過期與人工審核的終止狀態。
 
-目前共通過 **70 項自動測試**。
+目前共通過 **75 項自動測試**。
 
-## 下一階段
+## 專案狀態與 Production 邊界
 
-1. 擴充 Live-model Evaluation，並比較不同 Model／Prompt 版本
-2. 加入 Proposal SLA 指標與審核人員通知
-3. 正式通訊／Payment Provider Adapter、Monitoring 與 Secret Management
+作品集里程碑已完成：本機環境已涵蓋 CRM Domain、受控 AI Workflow、背景工作、
+審核 SLA、Observability 與自動驗證。另見雙語
+[系統架構說明](docs/ARCHITECTURE.zh-TW.md)與
+[面試展示指南](docs/DEMO_GUIDE.zh-TW.md)。
+
+本專案不宣稱為 Production Deployment。正式金流與 Email Adapter、Managed Secret
+Storage、Infrastructure Alert、Backup 與組織特定的隱私／法遵控制，都需要真實
+Provider Account 與部署環境。在這些條件完成前，Integration Status 會維持
+Fail-closed，不執行任何外部付款或寄信動作。

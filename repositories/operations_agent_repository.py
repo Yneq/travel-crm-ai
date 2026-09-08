@@ -243,6 +243,41 @@ def list_action_proposals(
         cursor.close()
 
 
+def proposal_sla_metrics(connection, actor_id: int) -> dict:
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+              SUM(status = 'pending' AND expires_at > UTC_TIMESTAMP()) AS pending,
+              SUM(status = 'pending' AND expires_at > UTC_TIMESTAMP()
+                  AND assigned_to IS NULL) AS unassigned,
+              SUM(status = 'pending' AND expires_at > UTC_TIMESTAMP()
+                  AND expires_at <= UTC_TIMESTAMP() + INTERVAL 4 HOUR) AS expiring_within_4h,
+              SUM(status = 'expired'
+                  OR (status = 'pending' AND expires_at <= UTC_TIMESTAMP())) AS expired,
+              SUM(status = 'pending' AND expires_at > UTC_TIMESTAMP()
+                  AND assigned_to = %s) AS assigned_to_me,
+              AVG(CASE WHEN reviewed_at IS NOT NULL
+                  THEN TIMESTAMPDIFF(MINUTE, created_at, reviewed_at) END) AS average_review_minutes
+            FROM agent_action_proposals
+            """,
+            (actor_id,),
+        )
+        row = cursor.fetchone() or {}
+        average = row.get("average_review_minutes")
+        return {
+            "pending": int(row.get("pending") or 0),
+            "unassigned": int(row.get("unassigned") or 0),
+            "expiring_within_4h": int(row.get("expiring_within_4h") or 0),
+            "expired": int(row.get("expired") or 0),
+            "assigned_to_me": int(row.get("assigned_to_me") or 0),
+            "average_review_minutes": round(float(average), 1) if average is not None else None,
+        }
+    finally:
+        cursor.close()
+
+
 def assign_action_proposals(
     connection,
     proposal_ids: list[int],

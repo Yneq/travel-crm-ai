@@ -66,4 +66,27 @@ def build_operational_reminder(signal: dict[str, Any], now: datetime) -> dict[st
             },
         }
 
+    if signal_type == "agent_proposal_sla":
+        remaining_minutes = max(
+            0, int((signal["expires_at"] - now).total_seconds() // 60)
+        )
+        return {
+            "task_id": None,
+            "member_id": None,
+            "reminder_type": "agent_proposal_sla",
+            "source_type": "agent_action_proposal",
+            "source_id": source_id,
+            "dedup_key": f"agent_proposal_sla:{source_id}:{signal['expires_at'].isoformat()}",
+            "title": f"Agent 提案即將到期：{signal['title']}",
+            "scheduled_at": now,
+            "payload": {
+                "severity": "urgent" if remaining_minutes <= 60 else "high",
+                "reason": f"待核准提案將在 {remaining_minutes} 分鐘內到期",
+                "recommended_action": "確認負責人並完成核准或退回",
+                "proposal_id": source_id,
+                "assigned_to": signal.get("assigned_to"),
+                "expires_at": signal["expires_at"].isoformat(),
+            },
+        }
+
     raise ValueError(f"Unsupported reminder signal: {signal_type}")

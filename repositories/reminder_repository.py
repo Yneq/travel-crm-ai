@@ -105,6 +105,21 @@ def _collect_signals(cursor, now: datetime) -> list[dict]:
         (now.date(), (now + timedelta(days=14)).date()),
     )
     signals.extend({"signal_type": "trip_countdown", **row} for row in cursor.fetchall())
+
+    cursor.execute(
+        """
+        SELECT id AS source_id, assigned_to, expires_at,
+               JSON_UNQUOTE(JSON_EXTRACT(action_payload, '$.title')) AS title
+        FROM agent_action_proposals
+        WHERE status = 'pending'
+          AND expires_at > %s
+          AND expires_at <= %s
+        """,
+        (now, now + timedelta(hours=4)),
+    )
+    signals.extend(
+        {"signal_type": "agent_proposal_sla", **row} for row in cursor.fetchall()
+    )
     return signals
 
 

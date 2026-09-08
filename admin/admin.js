@@ -10,6 +10,7 @@ const state = {
   communicationVersions: {},
   jobs: [],
   workerStatus: null,
+  integrationStatus: null,
   trips: [],
   quotes: [],
   orders: [],
@@ -19,6 +20,7 @@ const state = {
   latestAgentRun: null,
   actionProposals: [],
   proposalPage: { items: [], total: 0, limit: 8, offset: 0 },
+  proposalMetrics: { pending: 0, unassigned: 0, expiring_within_4h: 0, expired: 0, assigned_to_me: 0, average_review_minutes: null },
   proposalFilters: { status: "", assignment: "", search: "" },
   selectedProposalIds: new Set(),
   staffUsers: [],
@@ -85,6 +87,7 @@ const labels = {
   dining: "餐飲", other: "其他",
   scheduled: "待處理", acknowledged: "已處理", dismissed: "已略過",
   task_due: "任務期限", payment_follow_up: "付款追蹤", trip_countdown: "出發確認",
+  agent_proposal_sla: "Agent 提案期限",
   retrying: "等待重試", dead_letter: "需人工介入",
   operational_reminder_scan: "營運提醒掃描",
   sent: "Mock 已寄送",
@@ -213,7 +216,7 @@ async function bootApp() {
 async function loadData() {
   setSyncing(true);
   try {
-    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus, state.proposalPage] = await Promise.all([
+    [state.members, state.requests, state.tasks, state.reminders, state.communicationDrafts, state.communicationTemplates, state.jobs, state.workerStatus, state.integrationStatus, state.trips, state.quotes, state.orders, state.aiProviderStatus, state.proposalPage, state.proposalMetrics] = await Promise.all([
       api("/api/members?limit=100"),
       api("/api/travel-requests?limit=100"),
       api("/api/tasks?limit=100"),
@@ -222,11 +225,13 @@ async function loadData() {
       api("/api/communication-templates"),
       api("/api/operations/jobs?limit=20"),
       api("/api/operations/worker/status"),
+      api("/api/operations/integrations/status"),
       api("/api/trips"),
       api("/api/quotes"),
       api("/api/orders"),
       api("/api/ai/providers/status"),
       api(buildProposalPath()),
+      api("/api/operations-agent/proposal-metrics"),
     ]);
     state.actionProposals = state.proposalPage.items;
     state.selectedProposalIds.clear();
@@ -284,7 +289,10 @@ function buildProposalPath(offset = state.proposalPage.offset || 0) {
 async function loadActionProposals(offset = 0) {
   setSyncing(true);
   try {
-    state.proposalPage = await api(buildProposalPath(offset));
+    [state.proposalPage, state.proposalMetrics] = await Promise.all([
+      api(buildProposalPath(offset)),
+      api("/api/operations-agent/proposal-metrics"),
+    ]);
     state.actionProposals = state.proposalPage.items;
     state.selectedProposalIds.clear();
     renderOperationsAgent();
@@ -350,6 +358,17 @@ function renderOperationsAgent() {
     <details class="agent-trace"><summary>查看 LangGraph 執行路徑</summary><ol>${run.node_trace.map((node) => `<li>${escapeHtml(node)}</li>`).join("")}</ol></details>`
     : '<div class="agent-empty compact-agent-empty"><span>✧</span><h3>等待你的問題</h3><p>Agent 的答案、使用工具與執行路徑會顯示在這裡。</p></div>';
   const canReview = ["admin", "advisor"].includes(state.user?.role);
+  const metrics = state.proposalMetrics;
+  const averageReview = metrics.average_review_minutes === null
+    ? "尚無資料" : `${metrics.average_review_minutes} 分鐘`;
+  const metricsHtml = `<div class="proposal-metrics">
+    <div><span>待核准</span><strong>${metrics.pending}</strong></div>
+    <div><span>指派給我</span><strong>${metrics.assigned_to_me}</strong></div>
+    <div><span>尚未指派</span><strong>${metrics.unassigned}</strong></div>
+    <div class="${metrics.expiring_within_4h ? "risk" : ""}"><span>4 小時內到期</span><strong>${metrics.expiring_within_4h}</strong></div>
+    <div class="${metrics.expired ? "risk" : ""}"><span>已過期</span><strong>${metrics.expired}</strong></div>
+    <div><span>平均審核時間</span><strong>${averageReview}</strong></div>
+  </div>`;
   const proposals = state.actionProposals;
   const page = state.proposalPage;
   const pageStart = page.total ? page.offset + 1 : 0;
@@ -388,7 +407,7 @@ function renderOperationsAgent() {
       <button class="button ghost compact" data-proposal-page="${page.offset + page.limit}" ${page.offset + page.limit >= page.total ? "disabled" : ""}>下一頁 →</button>
     </div>
   </div>`;
-  container.innerHTML = resultHtml + proposalsHtml;
+  container.innerHTML = resultHtml + metricsHtml + proposalsHtml;
 }
 
 function memberName(memberId) {
@@ -533,6 +552,9 @@ function renderReminders() {
 function renderJobs() {
   const status = state.workerStatus || {};
   $("#worker-status").innerHTML = `<span class="provider-dot ${status.redis_ready ? "live" : "local"}"></span><strong>${status.redis_ready ? "Redis Ready" : "Redis Offline"}</strong><small>重試 ${status.retrying || 0} · Dead Letter ${status.dead_letter || 0}</small>`;
+  const integrationLabels = { payment: "金流", email: "郵件", operations_ai: "AI" };
+  const integrations = state.integrationStatus?.components || [];
+  $("#integration-status").innerHTML = integrations.map((item) => `<div class="integration-chip"><span class="provider-dot ${item.configured ? "live" : "local"}"></span><div><strong>${escapeHtml(integrationLabels[item.component] || item.component)} · ${escapeHtml(item.mode)}</strong><small>${escapeHtml(item.external_actions_enabled ? "已啟用外部動作" : "Fail-closed／不執行外部動作")}</small></div></div>`).join("");
   $("#job-board").innerHTML = state.jobs.length ? state.jobs.map((job) => `
     <div class="job-row">
       <div><strong>${escapeHtml(labels[job.event_type] || job.event_type)}</strong><small>#${job.id} · ${formatDate(job.created_at, true)}</small></div>

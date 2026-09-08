@@ -19,6 +19,8 @@ services:
       CORS_ORIGINS: http://localhost:3000,http://localhost:8080
       ENABLE_MOCK_PAYMENT: "true"
       MOCKPAY_WEBHOOK_SECRET: local-mockpay-secret
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mockpay}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock-email}
       AI_PLANNING_PROVIDER: ${AI_PLANNING_PROVIDER:-local}
       AI_OPERATIONS_PROVIDER: ${AI_OPERATIONS_PROVIDER:-gemini}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -32,6 +34,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   worker:
     build: .
@@ -54,7 +62,7 @@ services:
       WORKER_LEASE_SECONDS: ${WORKER_LEASE_SECONDS:-60}
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:

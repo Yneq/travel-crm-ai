@@ -41,12 +41,18 @@ operational data with guarded model-driven automation.
 - Human-approved Agent write proposals for internal follow-up tasks, with
   24-hour expiry, required rejection reasons, stale-source validation,
   duplicate-execution protection, atomic audit records, and a searchable,
-  status-filtered review queue with pagination, ownership, and bulk triage
+  status-filtered review queue with pagination, ownership, bulk triage, SLA
+  metrics, and deduplicated deadline reminders
 - Schema foundations for trips, quotes, orders, payments, documents, reminders,
   AI runs, and third-party integration events
 - Independent background worker with Redis scheduled jobs, MySQL recovery,
   exponential retry, and dead-letter handling
+- Request correlation IDs, structured request logs, route-level Prometheus
+  counters, and separate liveness/readiness checks
+- Explicit integration-readiness reporting that keeps local payment and email
+  adapters fail-closed
 - Local MySQL, Redis, API, and worker environment through Docker Compose
+- GitHub Actions CI for the Python suite and Admin JavaScript syntax
 - OpenAPI documentation at `/docs`
 - Browser-based operations dashboard at `/admin`
 
@@ -116,6 +122,7 @@ revoked account cannot continue using an older JWT.
 | Approve or reject follow-up draft | `POST` | `/api/reminders/{reminder_id}/ai-draft/review` |
 | Background job history | `GET` | `/api/operations/jobs` |
 | Worker and queue status | `GET` | `/api/operations/worker/status` |
+| External integration readiness | `GET` | `/api/operations/integrations/status` |
 | Retry a dead-letter job (admin only) | `POST` | `/api/operations/jobs/{job_id}/retry` |
 | Communication drafts | `GET` | `/api/communication-drafts` |
 | Create editable draft from approved AI output | `POST` | `/api/reminders/{reminder_id}/communication-draft` |
@@ -130,6 +137,7 @@ revoked account cannot continue using an older JWT.
 | Run the read-only CRM Operations Agent | `POST` | `/api/operations-agent/runs` |
 | Search/filter paginated Agent action proposals | `GET` | `/api/operations-agent/proposals` |
 | Assign or unassign Agent proposals in bulk | `POST` | `/api/operations-agent/proposal-assignments` |
+| Agent proposal SLA metrics | `GET` | `/api/operations-agent/proposal-metrics` |
 | Approve or reject an Agent proposal | `POST` | `/api/operations-agent/proposals/{proposal_id}/review` |
 
 Writes require an `admin` or `advisor` role. Authenticated finance users can
@@ -378,6 +386,9 @@ changes are picked up automatically; production deployment should run without
 - Admin dashboard: <http://localhost:8080/admin>
 - Swagger UI: <http://localhost:8080/docs>
 - Health check: <http://localhost:8080/health>
+- Liveness: <http://localhost:8080/health/live>
+- Dependency readiness: <http://localhost:8080/health/ready>
+- Prometheus metrics: <http://localhost:8080/metrics>
 
 The migration runner records file checksums in `schema_migrations`, so existing
 volumes receive new migrations without deleting local data. Remove the project
@@ -389,16 +400,26 @@ volume only when intentionally resetting all local data.
 python -m unittest discover -v tests
 ```
 
-The current suite verifies REST route contracts, health/OpenAPI exposure,
-password hashing, JWT round trips, frontend authentication endpoints, payment
-provider behavior, PDF generation, schema invariants, and valid or invalid
-workflow transitions. The reminder tests also verify rule output, deduplication
-schema, API exposure, and terminal human-review states.
+The current suite verifies REST route contracts, health/OpenAPI and metrics
+exposure, request-correlation headers, password hashing, JWT round trips,
+frontend authentication endpoints, payment provider behavior, PDF generation,
+schema invariants, integration fail-closed status, and valid or invalid workflow
+transitions. Reminder and Agent tests additionally cover rule output,
+deduplication, proposal SLA aggregation, assignment, expiry, and terminal
+human-review states.
 
-The current suite passes **70 automated tests**.
+The current suite passes **75 automated tests**.
 
-## Next milestone
+## Project status and production boundary
 
-1. Expand live-model evaluation and compare model/prompt versions
-2. Add proposal SLA metrics and reviewer notifications
-3. Production communication/payment adapters, monitoring, and secret management
+The portfolio milestone is complete: the local environment demonstrates the CRM
+domain, guarded AI workflows, background processing, review SLAs, observability,
+and automated verification. See the bilingual
+[architecture note](docs/ARCHITECTURE.md) and the
+[Traditional Chinese interview demo guide](docs/DEMO_GUIDE.zh-TW.md).
+
+This is intentionally not presented as a production deployment. Real payment
+and email adapters, managed secret storage, infrastructure alerting, backups,
+and organization-specific privacy/compliance controls require provider accounts
+and a deployment environment. Until those exist, the integration status remains
+fail-closed and no external payment or message action is performed.

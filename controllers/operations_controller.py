@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from dependencies import get_current_user, get_db_connection, get_redis_connection, require_roles
-from models.job import JobResponse, WorkerStatusResponse
+from models.job import IntegrationStatusResponse, JobResponse, WorkerStatusResponse
 from repositories import job_repository
 from services.job_queue import RedisJobQueue
+from services.integration_readiness import integration_status
 
 
 router = APIRouter(prefix="/api/operations", tags=["background operations"])
@@ -40,6 +41,13 @@ def worker_status(
         "completed": counts.get("completed", 0),
         "dead_letter": counts.get("dead_letter", 0),
     }
+
+
+@router.get("/integrations/status", response_model=IntegrationStatusResponse)
+def integrations_status(
+    _current_user: dict = Depends(get_current_user),
+):
+    return integration_status()
 
 
 @router.post("/jobs/{job_id}/retry", response_model=JobResponse)

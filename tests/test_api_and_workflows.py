@@ -32,6 +32,7 @@ from services.operations_agent_provider import (
 from repositories.operations_agent_repository import (
     assign_action_proposals,
     list_action_proposals,
+    proposal_sla_metrics,
 )
 from services.communication_templates import TemplateRenderError, render_template
 from services.quote_pdf import build_quote_proposal_pdf
@@ -63,6 +64,8 @@ from services.workflow import (
     ensure_communication_transition,
 )
 from repositories.audit_repository import redact_audit_data
+from services.integration_readiness import integration_status
+from services.observability import RequestMetrics
 
 
 class ApiContractTests(unittest.TestCase):
@@ -76,6 +79,15 @@ class ApiContractTests(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("ok", response.json()["status"])
+        self.assertTrue(response.headers["X-Request-ID"])
+        self.assertIn("X-Process-Time-Ms", response.headers)
+
+    def test_liveness_and_prometheus_metrics_are_exposed(self):
+        live = self.client.get("/health/live")
+        metrics = self.client.get("/metrics")
+
+        self.assertEqual(200, live.status_code)
+        self.assertIn("voyageops_http_requests_total", metrics.text)
 
     def test_admin_dashboard_is_served(self):
         response = self.client.get("/admin")
@@ -125,6 +137,7 @@ class ApiContractTests(unittest.TestCase):
             ("/api/reminders/{reminder_id}/ai-draft/review", "post"),
             ("/api/operations/jobs", "get"),
             ("/api/operations/worker/status", "get"),
+            ("/api/operations/integrations/status", "get"),
             ("/api/operations/jobs/{job_id}/retry", "post"),
             ("/api/communication-drafts", "get"),
             ("/api/reminders/{reminder_id}/communication-draft", "post"),
@@ -139,12 +152,37 @@ class ApiContractTests(unittest.TestCase):
             ("/api/operations-agent/runs", "post"),
             ("/api/operations-agent/proposals", "get"),
             ("/api/operations-agent/proposal-assignments", "post"),
+            ("/api/operations-agent/proposal-metrics", "get"),
             ("/api/operations-agent/proposals/{proposal_id}/review", "post"),
         }
 
         for path, method in expected:
             self.assertIn(path, self.openapi["paths"])
             self.assertIn(method, self.openapi["paths"][path])
+
+
+class ProductionReadinessTests(unittest.TestCase):
+    def test_local_integrations_are_explicitly_fail_closed(self):
+        with patch.dict(os.environ, {
+            "PAYMENT_PROVIDER": "mockpay",
+            "EMAIL_PROVIDER": "mock-email",
+            "AI_OPERATIONS_PROVIDER": "local",
+        }, clear=False):
+            status = integration_status()
+
+        self.assertFalse(status["production_ready"])
+        self.assertTrue(all(
+            not item["external_actions_enabled"] for item in status["components"]
+        ))
+
+    def test_request_metrics_render_prometheus_counters(self):
+        metrics = RequestMetrics()
+        metrics.record("GET", "/health", 200, 0.012)
+
+        output = metrics.render_prometheus()
+
+        self.assertIn('route="/health",status="200"} 1', output)
+        self.assertIn("0.012000", output)
 
 
 class SecurityTests(unittest.TestCase):
@@ -245,6 +283,22 @@ class StaffPolicyTests(unittest.TestCase):
 
 
 class OperationsAgentTests(unittest.TestCase):
+    def test_proposal_sla_metrics_normalize_database_aggregates(self):
+        cursor = MagicMock()
+        cursor.fetchone.return_value = {
+            "pending": Decimal("3"), "unassigned": Decimal("1"),
+            "expiring_within_4h": Decimal("2"), "expired": Decimal("4"),
+            "assigned_to_me": Decimal("1"),
+            "average_review_minutes": Decimal("17.666"),
+        }
+        connection = MagicMock()
+        connection.cursor.return_value = cursor
+
+        metrics = proposal_sla_metrics(connection, actor_id=3)
+
+        self.assertEqual(2, metrics["expiring_within_4h"])
+        self.assertEqual(17.7, metrics["average_review_minutes"])
+
     def test_assignment_request_deduplicates_proposal_ids(self):
         from models.operations_agent import ActionProposalAssignmentRequest
 
@@ -500,6 +554,17 @@ class ReminderRuleTests(unittest.TestCase):
         self.assertEqual("payment_follow_up", reminder["reminder_type"])
         self.assertIn("再決定是否聯絡旅客", reminder["payload"]["recommended_action"])
         self.assertEqual("payment_follow_up:9:2026-09-04", reminder["dedup_key"])
+
+    def test_agent_proposal_near_expiry_becomes_internal_sla_reminder(self):
+        reminder = build_operational_reminder({
+            "signal_type": "agent_proposal_sla", "source_id": 12,
+            "assigned_to": 3, "title": "追蹤待付款訂單",
+            "expires_at": self.now + timedelta(minutes=45),
+        }, self.now)
+
+        self.assertEqual("agent_proposal_sla", reminder["reminder_type"])
+        self.assertEqual("urgent", reminder["payload"]["severity"])
+        self.assertEqual(3, reminder["payload"]["assigned_to"])
 
 
 class FollowUpCopilotTests(unittest.TestCase):

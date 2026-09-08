@@ -71,6 +71,15 @@ class ActionProposalAssignmentResult(BaseModel):
     assigned_to: int | None
 
 
+class ProposalSlaMetricsResponse(BaseModel):
+    pending: int
+    unassigned: int
+    expiring_within_4h: int
+    expired: int
+    assigned_to_me: int
+    average_review_minutes: float | None
+
+
 class OperationsAgentResponse(BaseModel):
     run_id: int
     answer: str

@@ -15,6 +15,7 @@ class ReminderType(StrEnum):
     TASK_DUE = "task_due"
     PAYMENT_FOLLOW_UP = "payment_follow_up"
     TRIP_COUNTDOWN = "trip_countdown"
+    AGENT_PROPOSAL_SLA = "agent_proposal_sla"
 
 
 class FollowUpStatus(StrEnum):

@@ -12,6 +12,7 @@ from models.operations_agent import (
     ActionProposalReview,
     OperationsAgentRequest,
     OperationsAgentResponse,
+    ProposalSlaMetricsResponse,
 )
 from repositories import operations_agent_repository as repository
 from services.operations_agent_graph import run_operations_agent_with_fallback
@@ -60,6 +61,14 @@ def list_action_proposals(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/proposal-metrics", response_model=ProposalSlaMetricsResponse)
+def proposal_sla_metrics(
+    connection=Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user),
+):
+    return repository.proposal_sla_metrics(connection, current_user["id"])
 
 
 @router.post("/proposal-assignments", response_model=ActionProposalAssignmentResult)
