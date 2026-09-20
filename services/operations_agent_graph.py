@@ -21,6 +21,8 @@ def select_tools(question: str) -> list[str]:
     normalized = question.lower()
     selected: list[str] = []
     keyword_groups = [
+        ("advisor_workload", ("顧問", "工作量", "負荷", "advisor", "workload")),
+        ("quote_followups", ("報價", "quote", "quotation")),
         ("overdue_tasks", ("任務", "待辦", "逾期", "到期", "task", "todo")),
         ("payment_followups", ("付款", "未付款", "收款", "payment", "order")),
         ("upcoming_departures", ("出發", "行程", "近期", "departure", "trip")),
@@ -30,7 +32,7 @@ def select_tools(question: str) -> list[str]:
             selected.append(tool)
     if not selected or any(keyword in normalized for keyword in ("總覽", "全部", "整體", "overview")):
         selected.insert(0, "operations_overview")
-    return list(dict.fromkeys(selected))[:4]
+    return list(dict.fromkeys(selected))[:len(TOOL_LABELS)]
 
 
 def _format_item(tool: str, item: dict) -> str:
@@ -41,6 +43,18 @@ def _format_item(tool: str, item: dict) -> str:
         return f"- {item['order_number']}｜{item['member_name']}｜{item['currency']} {item['total']}"
     if tool == "upcoming_departures":
         return f"- {item['start_date']}｜{item['member_name']}｜{item['destination']}（{item['status']}）"
+    if tool == "advisor_workload":
+        return (
+            f"- {item['advisor_name']}｜高優先任務 {item['high_priority_tasks']}｜"
+            f"待辦任務 {item['open_tasks']}｜進行中需求 {item['active_requests']}｜"
+            f"有效會員 {item['active_members']}"
+        )
+    if tool == "quote_followups":
+        return (
+            f"- {item['quote_number']}｜{item['member_name']}｜{item['destination']}｜"
+            f"{item['status']}｜{item['currency']} {item['total']}｜"
+            f"停滯 {item['stale_days']} 天（最後更新 {item['updated_at']}）"
+        )
     return f"- {item}"
 
 

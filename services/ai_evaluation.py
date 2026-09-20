@@ -150,6 +150,17 @@ def _operations_tool_data(tool_name: str) -> dict:
             "currency": "TWD", "created_at": "2026-09-05 09:00:00",
             "member_name": "Regression Member",
         }],
+        "advisor_workload": [{
+            "advisor_id": 1, "advisor_name": "Regression Advisor",
+            "active_members": 8, "active_requests": 5,
+            "open_tasks": 3, "high_priority_tasks": 2,
+        }],
+        "quote_followups": [{
+            "id": 4, "quote_number": "Q-REGRESSION", "status": "approved",
+            "currency": "TWD", "total": "120000", "stale_days": 3,
+            "updated_at": "2026-09-05 09:00:00", "expires_at": None,
+            "member_name": "Regression Member", "destination": "東京",
+        }],
         "upcoming_departures": [{
             "id": 3, "title": "東京家庭旅行", "destination": "東京",
             "start_date": "2026-09-20", "status": "booked",

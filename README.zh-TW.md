@@ -51,7 +51,7 @@ LangGraph Agent 只能透過唯讀工具查詢 CRM。涉及資料寫入時，系
 - 版本化通訊草稿：編輯後撤銷核准、maker-checker 角色分離、具名稽核人員，
   並提供具 Idempotency 的本機 Mock Email
 - 具隱私 Allowlist 的通訊範本與不可變內容版本快照
-- 具版本的 12 案例 AI Regression Set：評估 Schema、工具選擇、Guardrail、隱私、
+- 具版本的 16 案例 AI Regression Set：評估 Schema、工具選擇、Guardrail、隱私、
   危險營運宣稱、Provider Fallback 與延遲
 - 限 Admin 使用的 Audit Log 儀表板：支援操作人／資源／動作／日期篩選、分頁、
   Before／After 明細及遞迴敏感憑證遮蔽
@@ -243,9 +243,22 @@ Email 或電話。免費額度可能允許 Google 使用提交內容改善產品
 
 ## CRM Operations Agent
 
-Operations Copilot 僅開放四個 Allowlist 唯讀函式：營運數量總覽、到期任務、
-待付款追蹤及近期出發。Gemini 3.8 Flash 負責選擇及組合函式，只會收到這些查詢
+Operations Copilot V2 僅開放六個 Allowlist 唯讀函式：營運數量總覽、到期任務、
+待付款追蹤、近期出發、顧問工作量及停滯報價追蹤。Gemini 3.8 Flash 負責選擇及組合函式，只會收到這些查詢
 回傳的有限營運欄位；工具集中沒有寫入、付款、預訂或通訊函式。
+
+V2 兩個工具都不接受參數，每次最多回傳十筆：
+
+- `advisor_workload`：統計啟用顧問的有效且未刪除會員、未完成／未取消需求、
+  開啟／處理中任務，以及 urgent／high 任務數。依高優先任務、待辦任務、
+  進行中需求數遞減，再依顧問 ID 排序；工作量為零的顧問也會納入。
+- `quote_followups`：每個行程的最新版本、待核准或已核准、至少三天未更新（UTC）、
+  未過期且尚無任何訂單的報價。排除已刪除會員及已完成／取消需求，依最舊更新時間、
+  報價 ID 排序。停滯天數依報價更新時間計算，不代表距上次聯絡旅客的時間。
+
+範例：「哪一位顧問目前手上的高優先案件最多？」、「哪些旅客已經有報價，但三天沒有進展？」
+本機路由支援中英文，可組合六個唯讀工具。SQL 明列營運欄位，不包含 Email、電話、
+憑證、報價備註或項目快照。新工具不建立動作提案；既有待付款提案仍須人工核准。
 
 每次執行都會在 `ai_runs` 保存實際 Provider、工具、結果數量與 LangGraph Trace，
 並把不含憑證的摘要寫入 Audit Log。模型若產生已執行外部動作的危險宣稱會被拒絕。
@@ -307,7 +320,7 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 ```
 
 Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存可重現
-結果：**12/12 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
+結果：**12/16 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
 皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 6 個 Operations Agent
 情境；Agent 子集在這 6 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
 也是 100%。這個結果只證明已定義的 Contract，不代表通用語意理解、主觀行程品質、
@@ -379,7 +392,7 @@ Header、密碼雜湊、JWT Round Trip、前端驗證 Endpoint、Payment Provide
 Workflow Transition。Reminder 與 Agent 測試另外涵蓋規則輸出、防重複、Proposal
 SLA 統計、指派、過期與人工審核的終止狀態。
 
-目前共通過 **75 項自動測試**。
+目前共通過 **83 項自動測試**。
 
 ## 專案狀態與 Production 邊界
 

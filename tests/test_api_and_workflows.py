@@ -203,6 +203,7 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(42, payload["id"])
         self.assertEqual("advisor", payload["role"])
 
+    @patch.dict("dependencies.rds_db_config", {"user": "test", "host": "test", "password": "test", "database": "test"})
     @patch("dependencies.mysql.connector.connect")
     def test_current_user_refreshes_role_from_database(self, connect):
         cursor = MagicMock()
@@ -226,6 +227,7 @@ class SecurityTests(unittest.TestCase):
         cursor.close.assert_called_once()
         connection.close.assert_called_once()
 
+    @patch.dict("dependencies.rds_db_config", {"user": "test", "host": "test", "password": "test", "database": "test"})
     @patch("dependencies.mysql.connector.connect")
     def test_inactive_user_existing_token_is_rejected(self, connect):
         cursor = MagicMock()
