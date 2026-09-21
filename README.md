@@ -449,7 +449,7 @@ transitions. Reminder and Agent tests additionally cover rule output,
 deduplication, proposal SLA aggregation, assignment, expiry, and terminal
 human-review states.
 
-The current suite passes **83 automated tests**.
+The current suite passes **84 automated tests**.
 
 ## Project status and production boundary
 
