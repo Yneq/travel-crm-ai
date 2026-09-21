@@ -54,7 +54,7 @@ and fail-closed integration status stay visible in one operations queue.
 - Versioned communication drafts with approval reset on edit, maker-checker
   separation, named audit actors, and idempotent local-only Mock Email delivery
 - Privacy-safe communication templates and immutable content-version snapshots
-- Versioned 12-case AI regression set covering schema, tool selection, guardrails,
+- Versioned 16-case AI regression set covering schema, tool selection, guardrails,
   privacy, unsafe operational claims, provider fallback, and latency
 - Admin-only Audit Log dashboard with actor/entity/action/date filters, pagination,
   before/after details, and recursive credential redaction
@@ -271,11 +271,29 @@ data during testing and reassess the data-processing terms before production.
 
 ## CRM Operations Agent
 
-The Operations Copilot exposes four allowlisted, read-only functions: operational
-counts, due tasks, pending-payment follow-ups, and upcoming departures. Gemini
+The Operations Copilot V2 exposes six allowlisted, read-only functions: operational
+counts, due tasks, pending-payment follow-ups, upcoming departures, advisor
+workload, and stale quote follow-ups. Gemini
 3.8 Flash selects and composes these functions; it receives only the limited
 business fields returned by those queries. The model cannot call write, payment,
 booking, or communication functions.
+
+The two V2 tools accept no arguments and return at most ten rows:
+
+- `advisor_workload`: active advisors with active, non-deleted member counts,
+  non-completed/non-cancelled request counts, open/in-progress task counts, and
+  urgent/high-priority task counts. Sorted by high-priority tasks, open tasks,
+  active requests, then advisor ID; advisors with zero workload remain eligible.
+- `quote_followups`: latest quote version per trip, pending approval or approved,
+  unchanged for at least three days (UTC), not expired, and without any order.
+  Deleted members and completed/cancelled requests are excluded. Sorted by oldest
+  update then quote ID. Staleness measures quote updates, not traveler contact.
+
+Try “哪一位顧問目前手上的高優先案件最多？” or “哪些旅客已經有報價，但三天沒有進展？”
+The local router supports Chinese/English and can combine all six read tools.
+Queries explicitly select operational fields; email, phone, credentials, quote
+notes and item snapshots are excluded. These tools create no action proposals;
+existing pending-payment proposals still require human approval.
 
 Every run stores its provider, selected tools, result counts, and LangGraph trace
 in `ai_runs`, with a credential-safe summary in the Audit Log. Unsafe external-
@@ -352,7 +370,7 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 ```
 
 The checked-in [`evals/baseline.local.json`](evals/baseline.local.json) records
-the deterministic result: **12/12 cases passed**, with 100% schema, guardrail,
+the deterministic result: **16/16 cases passed**, with 100% schema, guardrail,
 privacy, and explicit claim-safety checks. The fixtures cover three itinerary-
 planning, three follow-up, and six Operations Agent scenarios. The Agent subset
 also records 100% exact tool-selection accuracy on those six project-specific
@@ -431,7 +449,7 @@ transitions. Reminder and Agent tests additionally cover rule output,
 deduplication, proposal SLA aggregation, assignment, expiry, and terminal
 human-review states.
 
-The current suite passes **75 automated tests**.
+The current suite passes **83 automated tests**.
 
 ## Project status and production boundary
 

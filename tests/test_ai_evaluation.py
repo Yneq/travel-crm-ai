@@ -13,8 +13,8 @@ class AIEvaluationTests(unittest.TestCase):
 
         report = run_evaluation(fixtures, "local")
 
-        self.assertEqual(12, report["overall"]["case_count"])
-        self.assertEqual(12, report["overall"]["passed_count"])
+        self.assertEqual(16, report["overall"]["case_count"])
+        self.assertEqual(16, report["overall"]["passed_count"])
         self.assertEqual(1.0, report["overall"]["privacy_pass_rate"])
         self.assertEqual(1.0, report["overall"]["guardrail_pass_rate"])
         self.assertEqual(

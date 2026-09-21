@@ -8,6 +8,8 @@ TOOL_LABELS = {
     "overdue_tasks": "逾期與即將到期任務",
     "payment_followups": "待付款追蹤",
     "upcoming_departures": "近期出發行程",
+    "advisor_workload": "顧問工作量",
+    "quote_followups": "停滯報價追蹤",
 }
 
 
@@ -63,6 +65,58 @@ def execute_read_tool(connection, tool_name: str) -> dict:
                 WHERE tr.status IN ('approved', 'booked')
                   AND tr.start_date BETWEEN UTC_DATE() AND UTC_DATE() + INTERVAL 30 DAY
                 ORDER BY tr.start_date
+                LIMIT 10
+                """
+            )
+            return {"items": cursor.fetchall()}
+        if tool_name == "advisor_workload":
+            cursor.execute(
+                """
+                SELECT su.id AS advisor_id, su.name AS advisor_name,
+                  (SELECT COUNT(*) FROM members m
+                   WHERE m.owner_id = su.id AND m.deleted_at IS NULL
+                     AND m.status = 'active') AS active_members,
+                  (SELECT COUNT(*) FROM travel_requests tr
+                   WHERE tr.advisor_id = su.id
+                     AND tr.status NOT IN ('completed', 'cancelled')) AS active_requests,
+                  (SELECT COUNT(*) FROM tasks t
+                   WHERE t.assignee_id = su.id
+                     AND t.status IN ('open', 'in_progress')) AS open_tasks,
+                  (SELECT COUNT(*) FROM tasks t
+                   WHERE t.assignee_id = su.id
+                     AND t.status IN ('open', 'in_progress')
+                     AND t.priority IN ('urgent', 'high')) AS high_priority_tasks
+                FROM staff_users su
+                JOIN roles r ON r.id = su.role_id
+                WHERE su.is_active = TRUE AND r.code = 'advisor'
+                ORDER BY high_priority_tasks DESC, open_tasks DESC,
+                         active_requests DESC, su.id
+                LIMIT 10
+                """
+            )
+            return {"items": cursor.fetchall()}
+        if tool_name == "quote_followups":
+            cursor.execute(
+                """
+                SELECT q.id, q.quote_number, q.status, q.currency, q.total,
+                       q.updated_at, q.expires_at, m.name AS member_name,
+                       tr.destination,
+                       TIMESTAMPDIFF(DAY, q.updated_at, UTC_TIMESTAMP()) AS stale_days
+                FROM quotes q
+                JOIN trips t ON t.id = q.trip_id
+                JOIN travel_requests tr ON tr.id = t.request_id
+                JOIN members m ON m.id = tr.member_id
+                WHERE q.status IN ('pending_approval', 'approved')
+                  AND q.updated_at <= UTC_TIMESTAMP() - INTERVAL 3 DAY
+                  AND (q.expires_at IS NULL OR q.expires_at > UTC_TIMESTAMP())
+                  AND m.deleted_at IS NULL
+                  AND tr.status NOT IN ('completed', 'cancelled')
+                  AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.quote_id = q.id)
+                  AND NOT EXISTS (
+                    SELECT 1 FROM quotes newer
+                    WHERE newer.trip_id = q.trip_id AND newer.version > q.version
+                  )
+                ORDER BY q.updated_at, q.id
                 LIMIT 10
                 """
             )

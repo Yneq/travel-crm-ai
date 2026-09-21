@@ -70,6 +70,14 @@ class GeminiOperationsAgentProvider:
             """取得未來 30 天內已核准或已訂購的出發行程。"""
             return invoke("upcoming_departures")
 
+        def advisor_workload():
+            """取得最多十位啟用顧問的會員、需求與任務數，依高優先任務及待辦數排序。"""
+            return invoke("advisor_workload")
+
+        def quote_followups():
+            """取得至少三天未更新、未過期且尚無訂單的最新待核准或已核准報價，最多十筆；不修改報價或聯絡旅客。"""
+            return invoke("quote_followups")
+
         candidate_models = [self.model]
         if self.fallback_model:
             candidate_models.append(self.fallback_model)
@@ -95,6 +103,8 @@ class GeminiOperationsAgentProvider:
                                 overdue_tasks,
                                 payment_followups,
                                 upcoming_departures,
+                                advisor_workload,
+                                quote_followups,
                             ],
                             automatic_function_calling=types.AutomaticFunctionCallingConfig(
                                 maximum_remote_calls=4
