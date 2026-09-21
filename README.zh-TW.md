@@ -166,7 +166,7 @@ Audit Log 是唯讀資源，且只允許 `admin` 查詢。API 支援依資源類
 ```text
 new → qualified → planning → proposal_ready → client_review
                                                 ↓
-                                             approved → booked → co目前共通過 **84 項自動測試**。mpleted
+                                             approved → booked → completed
 ```
 
 支援的階段可以轉換為 `cancelled`；例如 `new → booked` 這種不合法的跳轉會
@@ -392,14 +392,14 @@ Header、密碼雜湊、JWT Round Trip、前端驗證 Endpoint、Payment Provide
 Workflow Transition。Reminder 與 Agent 測試另外涵蓋規則輸出、防重複、Proposal
 SLA 統計、指派、過期與人工審核的終止狀態。
 
-[面試展示指南與 v1.0 收尾標準](docs/DEMO_GUIDE.zh-TW.md)。
+目前共通過 **84 項自動測試**。
 
 ## 專案狀態與 Production 邊界
 
 作品集里程碑已完成：本機環境已涵蓋 CRM Domain、受控 AI Workflow、背景工作、
 審核 SLA、Observability 與自動驗證。另見雙語
 [系統架構說明](docs/ARCHITECTURE.zh-TW.md)與
-84 項自動測試(docs/DEMO_GUIDE.zh-TW.md)。
+[面試展示指南與 v1.0 收尾標準](docs/DEMO_GUIDE.zh-TW.md)。
 
 本專案不宣稱為 Production Deployment。正式金流與 Email Adapter、Managed Secret
 Storage、Infrastructure Alert、Backup 與組織特定的隱私／法遵控制，都需要真實
