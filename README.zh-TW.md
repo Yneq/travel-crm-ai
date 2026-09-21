@@ -166,7 +166,7 @@ Audit Log 是唯讀資源，且只允許 `admin` 查詢。API 支援依資源類
 ```text
 new → qualified → planning → proposal_ready → client_review
                                                 ↓
-                                             approved → booked → completed
+                                             approved → booked → co目前共通過 **84 項自動測試**。mpleted
 ```
 
 支援的階段可以轉換為 `cancelled`；例如 `new → booked` 這種不合法的跳轉會
@@ -392,7 +392,7 @@ Header、密碼雜湊、JWT Round Trip、前端驗證 Endpoint、Payment Provide
 Workflow Transition。Reminder 與 Agent 測試另外涵蓋規則輸出、防重複、Proposal
 SLA 統計、指派、過期與人工審核的終止狀態。
 
-目前共通過 ****。
+[面試展示指南與 v1.0 收尾標準](docs/DEMO_GUIDE.zh-TW.md)。
 
 ## 專案狀態與 Production 邊界
 
