@@ -97,16 +97,16 @@
           <div class="agent-layout">
             <article class="panel agent-console">
               <div class="panel-heading"><div><p class="eyebrow">LANGGRAPH · READ-ONLY TOOLS</p><h2>CRM Operations Copilot</h2></div><span class="agent-safety">Human in control</span></div>
-              <p class="muted agent-intro">詢問目前的任務、付款追蹤、近期出發或整體營運狀況。Agent 會自行選擇唯讀工具，但不會建立訂單、付款或寄送訊息。</p>
+              <p class="muted agent-intro"></p>
               <div class="agent-prompts">
                 <button type="button" data-agent-prompt="今天有哪些任務和付款需要優先處理？">今日優先事項</button>
-                <button type="button" data-agent-prompt="整理未付款訂單與近期出發行程">付款與出發風險</button>
+                詢問目前的任務、付款、出發、顧問工作量、停滯報價或整體營運狀況。Agent 會自行選擇最多六個唯讀工具，但不會建立訂單、付款或寄送訊息。
                 <button type="button" data-agent-prompt="替未付款訂單建立跟進任務">提出跟進任務</button>
                 <button type="button" data-agent-prompt="給我目前 CRM 營運總覽">營運總覽</button>
               </div>
               <form id="operations-agent-form" class="agent-form">
                 <label for="operations-agent-question">想了解什麼？</label>
-                <textarea id="operations-agent-question" name="question" rows="4" minlength="2" maxlength="500" required placeholder="例如：今天有哪些需要優先處理的任務和付款？"></textarea>
+                <textarea id="operations-agent-question" name="question" rows="4" minlength="2" maxlength="500" required placeholder="<button type="button" data-agent-prompt="哪一位顧問目前手上的高優先案件最多？">顧問工作量</button>                <button type="button" data-agent-prompt="哪些旅客已經有報價，但三天沒有進展？">停滯報價</button>"></textarea>
                 <div><small>每次執行都會保留工具與 Audit 紀錄</small><button class="button primary" type="submit">✧ 執行 Agent</button></div>
               </form>
             </article>
