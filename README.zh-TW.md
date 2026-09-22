@@ -320,9 +320,9 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 ```
 
 Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存可重現
-結果：**12/16 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
-皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 6 個 Operations Agent
-情境；Agent 子集在這 6 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
+結果：**16/16 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
+皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 10 個 Operations Agent
+情境；Agent 子集在這 10 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
 也是 100%。這個結果只證明已定義的 Contract，不代表通用語意理解、主觀行程品質、
 即時供應商資訊或 Production Network 效能。
 
