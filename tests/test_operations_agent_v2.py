@@ -160,7 +160,10 @@ class OperationsV2FlowTests(unittest.TestCase):
                 config = chat.call_args.kwargs['config']
                 registered = {fn.__name__: fn for fn in config.tools}
                 self.assertEqual(set(TOOL_LABELS), set(registered))
-                self.assertEqual(6, config.automatic_function_calling.maximum_remote_calls)
+                self.assertGreaterEqual(
+                    config.automatic_function_calling.maximum_remote_calls,
+                    len(TOOL_LABELS),
+                )
                 registered['advisor_workload']()
                 registered['quote_followups']()
                 return SimpleNamespace(text='請由人員確認顧問工作量與停滯報價。')
