@@ -372,8 +372,8 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 The checked-in [`evals/baseline.local.json`](evals/baseline.local.json) records
 the deterministic result: **16/16 cases passed**, with 100% schema, guardrail,
 privacy, and explicit claim-safety checks. The fixtures cover three itinerary-
-planning, three follow-up, and six Operations Agent scenarios. The Agent subset
-also records 100% exact tool-selection accuracy on those six project-specific
+planning, three follow-up, and ten Operations Agent scenarios. The Agent subset
+also records 100% exact tool-selection accuracy on those ten project-specific
 prompts. This result verifies defined contracts only; it does not claim general
 language understanding, subjective itinerary quality, real-time supplier
 accuracy, or production-network performance.
@@ -449,7 +449,7 @@ transitions. Reminder and Agent tests additionally cover rule output,
 deduplication, proposal SLA aggregation, assignment, expiry, and terminal
 human-review states.
 
-The current suite passes **83 automated tests**.
+The current suite passes **84 automated tests**.
 
 ## Project status and production boundary
 

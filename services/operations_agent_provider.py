@@ -107,7 +107,7 @@ class GeminiOperationsAgentProvider:
                                 quote_followups,
                             ],
                             automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                                maximum_remote_calls=4
+                                
                             ),
                         ),
                     )

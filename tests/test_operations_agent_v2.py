@@ -1,5 +1,6 @@
 import sqlite3
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,9 @@ from repositories.operations_agent_repository import TOOL_LABELS, execute_read_t
 from services.ai_evaluation import _operations_tool_data
 from services.operations_agent_graph import run_operations_agent, run_operations_agent_with_fallback, select_tools
 from services.operations_agent_provider import GeminiOperationsAgentProvider
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReadCursor:
@@ -153,8 +157,13 @@ class OperationsV2FlowTests(unittest.TestCase):
         with patch('google.genai.Client') as client:
             chat = client.return_value.__enter__.return_value.chats.create
             def send(_):
-                registered = {fn.__name__: fn for fn in chat.call_args.kwargs['config'].tools}
+                config = chat.call_args.kwargs['config']
+                registered = {fn.__name__: fn for fn in config.tools}
                 self.assertEqual(set(TOOL_LABELS), set(registered))
+                self.assertGreaterEqual(
+                    config.automatic_function_calling.maximum_remote_calls,
+                    len(TOOL_LABELS),
+                )
                 registered['advisor_workload']()
                 registered['quote_followups']()
                 return SimpleNamespace(text='請由人員確認顧問工作量與停滯報價。')
@@ -163,3 +172,9 @@ class OperationsV2FlowTests(unittest.TestCase):
             result = GeminiOperationsAgentProvider('test-key', 'test-model').run('顧問與報價', execute)
         self.assertEqual(['advisor_workload','quote_followups'], [r['tool'] for r in result['tool_results']])
         self.assertEqual(2, execute.call_count)
+
+    def test_admin_console_exposes_v2_example_questions(self):
+        html = (ROOT / 'admin' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('哪一位顧問目前手上的高優先案件最多？', html)
+        self.assertIn('哪些旅客已經有報價，但三天沒有進展？', html)
+        self.assertIn('最多六個唯讀工具', html)

@@ -320,9 +320,9 @@ python scripts/evaluate_ai.py --provider local --output output/ai-eval-local.jso
 ```
 
 Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保存可重現
-結果：**12/16 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
-皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 6 個 Operations Agent
-情境；Agent 子集在這 6 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
+結果：**16/16 案例通過**，Schema、Guardrail、Privacy 與明確 Claim Safety 檢查
+皆為 100%。Fixtures 包含 3 個行程規劃、3 個 Follow-up 與 10 個 Operations Agent
+情境；Agent 子集在這 10 個 Project-specific Prompts 的 Exact Tool-selection Accuracy
 也是 100%。這個結果只證明已定義的 Contract，不代表通用語意理解、主觀行程品質、
 即時供應商資訊或 Production Network 效能。
 
@@ -392,14 +392,14 @@ Header、密碼雜湊、JWT Round Trip、前端驗證 Endpoint、Payment Provide
 Workflow Transition。Reminder 與 Agent 測試另外涵蓋規則輸出、防重複、Proposal
 SLA 統計、指派、過期與人工審核的終止狀態。
 
-目前共通過 **83 項自動測試**。
+目前共通過 **84 項自動測試**。
 
 ## 專案狀態與 Production 邊界
 
 作品集里程碑已完成：本機環境已涵蓋 CRM Domain、受控 AI Workflow、背景工作、
 審核 SLA、Observability 與自動驗證。另見雙語
 [系統架構說明](docs/ARCHITECTURE.zh-TW.md)與
-[面試展示指南](docs/DEMO_GUIDE.zh-TW.md)。
+[面試展示指南與 v1.0 收尾標準](docs/DEMO_GUIDE.zh-TW.md)。
 
 本專案不宣稱為 Production Deployment。正式金流與 Email Adapter、Managed Secret
 Storage、Infrastructure Alert、Backup 與組織特定的隱私／法遵控制，都需要真實

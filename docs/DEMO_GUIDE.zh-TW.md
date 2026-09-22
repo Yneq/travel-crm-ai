@@ -22,6 +22,13 @@
 在 AI Copilot 輸入營運問題，展示 Tool Trace。強調 Agent 工具只有讀取權限；
 若要求建立任務，系統產生 Proposal，而不是直接寫資料庫。
 
+先用兩個 V2 快速問題展示不同工具：
+
+1. `哪一位顧問目前手上的高優先案件最多？`
+2. `哪些旅客已經有報價，但三天沒有進展？`
+
+再輸入 `替未付款訂單建立跟進任務`，對比唯讀回答與寫入 Proposal 的差異。
+
 再展示 Proposal Review Queue：搜尋、狀態篩選、負責人、批次分流、24 小時 SLA、
 過期保護，以及核准後才原子化建立 Task 與 Audit Log。
 
@@ -65,3 +72,17 @@ Test-first，整體是持續增加 Regression Coverage 的開發方式。
 沒有。專案實作的是 Provider Interface、Mock Adapter、Webhook／Idempotency／Audit
 等整合邊界。正式 Adapter 需要供應商帳號、Credentials、法遵與部署環境，不能
 把 Mock 測試宣稱為 Production Integration。
+
+## v1.0 收尾標準
+
+作品集版本達到以下條件即可收尾，之後只修正缺陷，不再擴張功能：
+
+- main 的 CI 通過，固定 AI Regression Set 全數通過。
+- Docker Compose 能啟動 API、Worker、MySQL 與 Redis，Migration 可重複執行。
+- 管理介面可走完會員 → 需求 → 行程 → 報價 → 訂單／付款的主流程。
+- Operations Agent 六個唯讀工具、Fallback、Proposal、人工核准與 Audit Trace 可展示。
+- `/health/ready`、`/metrics`、Worker 狀態與 Integration Status 可展示。
+- README、Architecture、Demo Guide 與畫面描述一致，且清楚標示 Production 邊界。
+
+正式金流、Email、Managed Secret、Backup、Infrastructure Alert 與組織法遵屬於
+Production 導入階段，不列入作品集 v1.0 的完成條件。
