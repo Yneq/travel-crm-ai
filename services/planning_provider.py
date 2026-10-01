@@ -119,12 +119,14 @@ class GeminiPlanningProvider:
         self.fallback_model = fallback_model if fallback_model != model else None
         self.max_output_tokens = max(2_048, max_output_tokens)
         self.name = f"gemini:{model}"
+        self.last_usage = None
 
     def generate_plan(self, context: dict, planning_notes: str | None) -> dict:
         from google import genai
         from google.genai import errors, types
 
         prompt = build_gemini_prompt(context, planning_notes)
+        self.last_usage = None
         candidate_models = [self.model]
         if self.fallback_model:
             candidate_models.append(self.fallback_model)
@@ -164,6 +166,7 @@ class GeminiPlanningProvider:
                             "Gemini returned an invalid planning response"
                         ) from exc
                     self.name = f"gemini:{candidate_model}"
+                    self.last_usage = getattr(response, "usage_metadata", None)
                     return plan.model_dump()
                 except errors.APIError as exc:
                     last_error = exc
@@ -241,7 +244,8 @@ def _day_count(start: date | None, end: date | None) -> int:
 PROVIDERS: dict[str, PlanningProvider] = {"local": LocalPlanningProvider()}
 
 
-def get_planning_provider(name: str = "local") -> PlanningProvider:
+def get_planning_provider(name: str = "local", *, model: str | None = None,
+                          fallback_model: str | None = None) -> PlanningProvider:
     if name == "gemini":
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -250,10 +254,10 @@ def get_planning_provider(name: str = "local") -> PlanningProvider:
             )
         return GeminiPlanningProvider(
             api_key=api_key,
-            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+            model=model or os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             timeout_ms=int(os.getenv("AI_PROVIDER_TIMEOUT_MS", "20000")),
             max_retries=int(os.getenv("AI_PROVIDER_MAX_RETRIES", "2")),
-            fallback_model=os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
+            fallback_model=fallback_model if model else os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
             max_output_tokens=int(os.getenv("AI_PROVIDER_MAX_OUTPUT_TOKENS", "8192")),
         )
     try:

@@ -42,12 +42,14 @@ class GeminiOperationsAgentProvider:
         self.timeout_ms = timeout_ms
         self.fallback_model = fallback_model if fallback_model != model else None
         self.name = f"gemini:{model}"
+        self.last_usage = None
 
     def run(self, question: str, execute_tool: Callable[[str], dict]) -> dict:
         from google import genai
         from google.genai import types
 
         executions: list[dict] = []
+        self.last_usage = None
 
         def invoke(tool_name: str) -> dict:
             result = _json_safe(execute_tool(tool_name))
@@ -116,6 +118,7 @@ class GeminiOperationsAgentProvider:
                 validate_model_answer(answer)
                 if not executions:
                     raise OperationsAgentProviderError("Gemini did not call a CRM tool")
+                self.last_usage = getattr(response, "usage_metadata", None)
                 return {
                     "answer": answer,
                     "tool_results": list(executions),
@@ -127,7 +130,8 @@ class GeminiOperationsAgentProvider:
         raise OperationsAgentProviderError("Gemini function calling failed") from last_error
 
 
-def get_operations_agent_provider(name: str):
+def get_operations_agent_provider(name: str, *, model: str | None = None,
+                                  fallback_model: str | None = None):
     if name != "gemini":
         return None
     api_key = os.getenv("GEMINI_API_KEY")
@@ -135,7 +139,7 @@ def get_operations_agent_provider(name: str):
         raise OperationsAgentProviderError("Gemini API key is not configured")
     return GeminiOperationsAgentProvider(
         api_key=api_key,
-        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+        model=model or os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
         timeout_ms=int(os.getenv("AI_PROVIDER_TIMEOUT_MS", "20000")),
-        fallback_model=os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
+        fallback_model=fallback_model if model else os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
     )

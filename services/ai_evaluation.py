@@ -4,11 +4,11 @@ import time
 from copy import deepcopy
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
 
+from services.benchmark_provider import BenchmarkTarget, make_benchmark_adapter
 from services.ai_planning_graph import run_planning_graph
-from services.followup_provider import GeneratedFollowUp, build_followup_prompt, get_followup_provider
-from services.planning_provider import GeneratedTravelPlan, build_gemini_prompt, get_planning_provider
+from services.followup_provider import GeneratedFollowUp, build_followup_prompt
+from services.planning_provider import GeneratedTravelPlan, build_gemini_prompt
 from services.operations_agent_graph import run_operations_agent_with_fallback
 
 
@@ -42,6 +42,45 @@ def _latency_summary(values: list[float]) -> dict:
     }
 
 
+def _usage(provider, *, scope: str = "response") -> dict:
+    metadata = getattr(provider, "last_usage", None)
+    if metadata is None:
+        return {"status": "unavailable", "scope": None, "input_tokens": None,
+                "output_tokens": None, "total_tokens": None}
+    values = {
+        "input_tokens": getattr(metadata, "prompt_token_count", None),
+        "output_tokens": getattr(metadata, "candidates_token_count", None),
+        "total_tokens": getattr(metadata, "total_token_count", None),
+    }
+    available = any(v is not None for v in values.values())
+    return {"status": "reported" if available else "unavailable",
+            "scope": scope if available else None,
+            **values}
+
+
+def _identity(provider_name: str | None) -> dict:
+    if not provider_name:
+        return {"provider": None, "model": None}
+    if ":" in provider_name and not provider_name.startswith("local-"):
+        provider, model = provider_name.split(":", 1)
+        return {"provider": provider, "model": model}
+    return {"provider": "local", "model": None}
+
+
+def _aggregate_usage(results: list[dict]) -> dict:
+    reported = [case["token_usage"] for case in results
+                if case["token_usage"]["status"] == "reported"]
+    return {
+        "status": "reported" if len(reported) == len(results) and results
+                  and all(usage["scope"] == "response" for usage in reported) else
+                  "partial" if reported else "unavailable",
+        "reported_cases": len(reported),
+        **{key: sum(usage[key] for usage in reported if usage[key] is not None)
+           if reported and all(usage[key] is not None for usage in reported) else None
+           for key in ("input_tokens", "output_tokens", "total_tokens")},
+    }
+
+
 def _score(results: list[dict]) -> dict:
     dimensions = ("schema_valid", "guardrail_pass", "privacy_pass", "claim_safety_pass")
     return {
@@ -54,13 +93,22 @@ def _score(results: list[dict]) -> dict:
             for dimension in dimensions
         },
         "latency": _latency_summary([item["latency_ms"] for item in results]),
+        "tool_selection_accuracy": (
+            round(sum(item["tool_selection_pass"] for item in results if item["tool_selection_pass"] is not None)
+                  / sum(item["tool_selection_pass"] is not None for item in results), 4)
+            if any(item["tool_selection_pass"] is not None for item in results) else None
+        ),
     }
 
 
-def evaluate_planning(fixtures: list[dict], provider_name: str) -> dict:
-    provider = get_planning_provider(provider_name)
+def evaluate_planning(fixtures: list[dict], provider_name: str,
+                      target: BenchmarkTarget | None = None) -> dict:
+    target = target or BenchmarkTarget(provider_name)
+    provider = make_benchmark_adapter(target).planning()
     results = []
     for fixture in fixtures:
+        if hasattr(provider, "last_usage"):
+            provider.last_usage = None
         context = _normalize_planning_context(fixture["context"])
         started = time.perf_counter()
         try:
@@ -83,7 +131,8 @@ def evaluate_planning(fixtures: list[dict], provider_name: str) -> dict:
                 "id": fixture["id"], "passed": all(checks), "schema_valid": schema_valid,
                 "guardrail_pass": guardrail_pass, "privacy_pass": privacy_pass,
                 "claim_safety_pass": claim_safety_pass, "latency_ms": round(latency_ms, 2),
-                "error": None,
+                "tool_selection_pass": None, "token_usage": _usage(provider),
+                **_identity(provider.name), "error": None,
             })
         except Exception as exc:
             latency_ms = (time.perf_counter() - started) * 1000
@@ -91,14 +140,20 @@ def evaluate_planning(fixtures: list[dict], provider_name: str) -> dict:
                 "id": fixture["id"], "passed": False, "schema_valid": False,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
+                "tool_selection_pass": None, "token_usage": _usage(provider),
+                **_identity(None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
 
-def evaluate_followup(fixtures: list[dict], provider_name: str) -> dict:
-    provider = get_followup_provider(provider_name)
+def evaluate_followup(fixtures: list[dict], provider_name: str,
+                      target: BenchmarkTarget | None = None) -> dict:
+    target = target or BenchmarkTarget(provider_name)
+    provider = make_benchmark_adapter(target).followup()
     results = []
     for fixture in fixtures:
+        if hasattr(provider, "last_usage"):
+            provider.last_usage = None
         context = fixture["context"]
         started = time.perf_counter()
         try:
@@ -115,7 +170,8 @@ def evaluate_followup(fixtures: list[dict], provider_name: str) -> dict:
                 "id": fixture["id"], "passed": all(checks), "schema_valid": schema_valid,
                 "guardrail_pass": guardrail_pass, "privacy_pass": privacy_pass,
                 "claim_safety_pass": claim_safety_pass, "latency_ms": round(latency_ms, 2),
-                "error": None,
+                "tool_selection_pass": None, "token_usage": _usage(provider),
+                **_identity(provider.name), "error": None,
             })
         except Exception as exc:
             latency_ms = (time.perf_counter() - started) * 1000
@@ -123,6 +179,8 @@ def evaluate_followup(fixtures: list[dict], provider_name: str) -> dict:
                 "id": fixture["id"], "passed": False, "schema_valid": False,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
+                "tool_selection_pass": None, "token_usage": _usage(provider),
+                **_identity(None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
@@ -170,13 +228,19 @@ def _operations_tool_data(tool_name: str) -> dict:
     return {"items": fixtures[tool_name]}
 
 
-def evaluate_operations_agent(fixtures: list[dict], provider_name: str) -> dict:
+def evaluate_operations_agent(fixtures: list[dict], provider_name: str,
+                              target: BenchmarkTarget | None = None) -> dict:
+    target = target or BenchmarkTarget(provider_name)
+    provider = make_benchmark_adapter(target).operations()
     results = []
     for fixture in fixtures:
+        if provider is not None and hasattr(provider, "last_usage"):
+            provider.last_usage = None
         started = time.perf_counter()
         try:
             output = run_operations_agent_with_fallback(
-                fixture["question"], _operations_tool_data, provider_name
+                fixture["question"], _operations_tool_data, provider_name,
+                provider=provider,
             )
             latency_ms = (time.perf_counter() - started) * 1000
             actual_tools = [item["tool"] for item in output["tools_used"]]
@@ -196,7 +260,10 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str) -> dict:
                 and "0922333444" not in serialized
             )
             claim_safety_pass = not contains_risky_claim(output)
-            provider_pass = provider_name == "local" or output["provider"].startswith("gemini:")
+            provider_pass = (
+                output["provider"] == f"{target.provider}:{target.model}" if target.model
+                else provider_name == "local" or output["provider"].startswith(f"{provider_name}:")
+            )
             checks = (
                 tool_selection_pass,
                 schema_valid,
@@ -213,6 +280,8 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str) -> dict:
                 "privacy_pass": privacy_pass, "claim_safety_pass": claim_safety_pass,
                 "provider_pass": provider_pass, "provider": output["provider"],
                 "fallback_used": output["fallback_used"],
+                "token_usage": _usage(provider, scope="final_response_only"),
+                "model": _identity(output["provider"])["model"],
                 "latency_ms": round(latency_ms, 2), "error": None,
             })
         except Exception as exc:
@@ -223,6 +292,7 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str) -> dict:
                 "actual_tools": [], "schema_valid": False, "guardrail_pass": False,
                 "privacy_pass": False, "claim_safety_pass": False,
                 "provider_pass": False, "provider": None, "fallback_used": False,
+                "model": None, "token_usage": _usage(provider, scope="final_response_only"),
                 "latency_ms": round(latency_ms, 2),
                 "error": f"{type(exc).__name__}: {exc}",
             })
@@ -236,18 +306,22 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str) -> dict:
     return {"provider_requested": provider_name, "summary": summary, "cases": results}
 
 
-def run_evaluation(fixtures: dict, provider_name: str) -> dict:
-    planning = evaluate_planning(fixtures["planning"], provider_name)
-    followup = evaluate_followup(fixtures["followup"], provider_name)
+def run_evaluation(fixtures: dict, provider_name: str,
+                   model: str | None = None) -> dict:
+    target = BenchmarkTarget(provider_name, model)
+    planning = evaluate_planning(fixtures["planning"], provider_name, target)
+    followup = evaluate_followup(fixtures["followup"], provider_name, target)
     operations_agent = evaluate_operations_agent(
-        fixtures.get("operations_agent", []), provider_name
+        fixtures.get("operations_agent", []), provider_name, target
     )
     all_cases = [*planning["cases"], *followup["cases"], *operations_agent["cases"]]
     return {
         "fixture_version": fixtures["version"],
         "provider_requested": provider_name,
+        "model_requested": model,
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
         "overall": _score(all_cases),
+        "token_usage": _aggregate_usage(all_cases),
         "workflows": {
             "planning": planning,
             "followup": followup,
@@ -257,6 +331,40 @@ def run_evaluation(fixtures: dict, provider_name: str) -> dict:
             "This regression set checks contracts and explicit guardrails, not subjective itinerary quality.",
             "Local-provider latency is not representative of an external model or production network.",
             "No real traveler data is used.",
-            "Tool-selection accuracy is measured against six project-specific prompts.",
+            "Tool-selection accuracy is measured against ten project-specific prompts.",
+        ],
+    }
+
+
+def run_benchmark(fixtures: dict, targets: list[BenchmarkTarget]) -> dict:
+    if not targets:
+        raise ValueError("At least one benchmark target is required")
+    labels = [target.label for target in targets]
+    if len(set(labels)) != len(labels):
+        raise ValueError("Benchmark targets must be unique")
+    runs = {target.label: run_evaluation(fixtures, target.provider, target.model)
+            for target in targets}
+    return {
+        "fixture_version": fixtures["version"],
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+        "runs": runs,
+        "comparison": [
+            {"target": label, "case_count": run["overall"]["case_count"],
+             "passed_count": run["overall"]["passed_count"],
+             "pass_rate": run["overall"]["pass_rate"],
+             "schema_valid_rate": run["overall"]["schema_valid_rate"],
+             "guardrail_pass_rate": run["overall"]["guardrail_pass_rate"],
+             "privacy_pass_rate": run["overall"]["privacy_pass_rate"],
+             "claim_safety_pass_rate": run["overall"]["claim_safety_pass_rate"],
+             "tool_selection_accuracy": run["overall"]["tool_selection_accuracy"],
+             "latency": run["overall"]["latency"],
+             "token_usage": run["token_usage"]}
+            for label, run in runs.items()
+        ],
+        "limitations": [
+            "The local target is a deterministic baseline, not a language model.",
+            "Token counts are provider-reported when available; no cost is estimated.",
+            "Gemini operations-agent token usage may cover only the final response, not all automatic tool-call turns.",
+            "A model fallback to local is recorded as a failed provider match for that target.",
         ],
     }

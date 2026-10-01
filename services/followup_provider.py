@@ -59,12 +59,14 @@ class GeminiFollowUpProvider:
         self.timeout_ms = timeout_ms
         self.max_retries = max(0, max_retries)
         self.name = f"gemini:{model}"
+        self.last_usage = None
 
     def generate_followup(self, context: dict) -> dict:
         from google import genai
         from google.genai import errors, types
 
         prompt = build_followup_prompt(context)
+        self.last_usage = None
         for attempt in range(self.max_retries + 1):
             try:
                 with genai.Client(
@@ -88,6 +90,7 @@ class GeminiFollowUpProvider:
                     if parsed is not None
                     else GeneratedFollowUp.model_validate_json(response.text)
                 )
+                self.last_usage = getattr(response, "usage_metadata", None)
                 return result.model_dump()
             except errors.APIError as exc:
                 if exc.code in self.TRANSIENT_STATUS_CODES and attempt < self.max_retries:
@@ -125,7 +128,7 @@ def build_followup_prompt(context: dict) -> str:
     )
 
 
-def get_followup_provider(name: str = "local") -> FollowUpProvider:
+def get_followup_provider(name: str = "local", *, model: str | None = None) -> FollowUpProvider:
     if name == "gemini":
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -134,7 +137,7 @@ def get_followup_provider(name: str = "local") -> FollowUpProvider:
             )
         return GeminiFollowUpProvider(
             api_key=api_key,
-            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+            model=model or os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             timeout_ms=int(os.getenv("AI_PROVIDER_TIMEOUT_MS", "20000")),
             max_retries=int(os.getenv("AI_PROVIDER_MAX_RETRIES", "2")),
         )

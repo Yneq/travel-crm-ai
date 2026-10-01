@@ -10,12 +10,25 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-from services.ai_evaluation import load_fixtures, run_evaluation
+from services.ai_evaluation import load_fixtures, run_benchmark, run_evaluation
+from services.benchmark_provider import BenchmarkTarget
+
+
+def parse_target(value: str) -> BenchmarkTarget:
+    provider, separator, model = value.partition(":")
+    if provider not in ("local", "gemini") or (separator and not model):
+        raise argparse.ArgumentTypeError("Target must be local, gemini, or gemini:MODEL")
+    if provider == "local" and separator:
+        raise argparse.ArgumentTypeError("The local target has no model")
+    return BenchmarkTarget(provider, model if separator else None)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run VoyageOps fixed AI regression cases")
     parser.add_argument("--provider", choices=("local", "gemini"), default="local")
+    parser.add_argument("--model", help="Gemini model for a single-provider run")
+    parser.add_argument("--target", action="append", type=parse_target,
+                        help="Repeat for comparison, e.g. local --target gemini:MODEL")
     parser.add_argument("--fixtures", type=Path, default=ROOT / "evals" / "fixtures.json")
     parser.add_argument("--output", type=Path)
     parser.add_argument(
@@ -24,16 +37,28 @@ def main() -> int:
         help="Required with --provider gemini because it makes billable/external requests",
     )
     args = parser.parse_args()
-    if args.provider == "gemini" and not args.allow_live_api:
-        parser.error("--provider gemini requires --allow-live-api")
+    if args.model and args.provider != "gemini":
+        parser.error("--model requires --provider gemini")
+    if args.target and (args.provider != "local" or args.model):
+        parser.error("Use --target on its own for multi-model comparisons")
+    targets = args.target or [BenchmarkTarget(args.provider, args.model)]
+    if any(target.provider == "gemini" for target in targets) and not args.allow_live_api:
+        parser.error("Gemini targets require --allow-live-api")
 
-    report = run_evaluation(load_fixtures(args.fixtures), args.provider)
+    fixtures = load_fixtures(args.fixtures)
+    try:
+        report = (run_benchmark(fixtures, targets) if args.target else
+                  run_evaluation(fixtures, args.provider, args.model))
+    except ValueError as exc:
+        parser.error(str(exc))
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered + "\n", encoding="utf-8")
     print(rendered)
-    return 0 if report["overall"]["passed_count"] == report["overall"]["case_count"] else 1
+    runs = report["runs"].values() if args.target else [report]
+    return 0 if all(run["overall"]["passed_count"] == run["overall"]["case_count"]
+                    for run in runs) else 1
 
 
 if __name__ == "__main__":

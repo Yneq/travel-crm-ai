@@ -311,7 +311,7 @@ Placeholder；未知或缺少的欄位會直接拒絕，不會靜默產生不完
 手動修改或套用範本，都會新增一筆包含來源、編輯者及範本版本的不可變內容快照。
 功能上線前已存在的資料，只能由 Migration 保存當下版本，無法回推更早的內容。
 
-## AI Regression Evaluation
+## AI Regression Evaluation 與模型比較
 
 執行不會呼叫外部 API、可重現的本機 Baseline：
 
@@ -329,9 +329,31 @@ Repository 內的 [`evals/baseline.local.json`](evals/baseline.local.json) 保�
 Gemini 評估會呼叫外部服務，因此必須明確加入 Opt-in 參數：
 
 ```bash
-python scripts/evaluate_ai.py --provider gemini --allow-live-api \
+python scripts/evaluate_ai.py --provider gemini --model YOUR_GEMINI_MODEL \
+  --allow-live-api \
   --output output/ai-eval-gemini.json
 ```
+
+使用同一套 Fixtures 比較本機 Baseline 與兩個 Gemini 模型（將占位名稱換成帳號可用的模型 ID）：
+
+```bash
+python scripts/evaluate_ai.py --target local \
+  --target gemini:MODEL_A --target gemini:MODEL_B --allow-live-api \
+  --output output/ai-benchmark.json
+```
+
+原有 `--provider gemini --allow-live-api` 指令仍可使用 `GEMINI_MODEL` 與設定的
+Fallback。明確指定 `--model` 或 `--target gemini:MODEL` 時，會固定該模型，避免
+模型 Fallback 混淆比較結果。Operations Agent 若因 API 失敗退回本機路由，案例會記錄
+實際 `langgraph-local`、`fallback_used` 與 Provider Match 失敗。
+
+報告包含每個案例的 Pass/Fail、Schema、Guardrail、Privacy、不安全宣稱、工具選擇、
+耗時及實際 Provider/Model；`comparison` 提供模型間摘要。Gemini 回傳 Token Usage 時
+才記錄，缺少的值標示 `unavailable`，不估算 Cost。自動 Tool Calling 的 Token 計數
+可能只涵蓋最後回應。這些指標評估明確規則與十個工具路由題，不能代表主觀回答品質。
+
+`services/benchmark_provider.py` 是新增模型 Runtime 的接點；未來可在 Apple Silicon
+接入 Qwen/MLX，沿用同一套 Fixtures 與評分。
 
 ## Background Worker 與 Retry Queue
 

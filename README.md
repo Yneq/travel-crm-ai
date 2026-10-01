@@ -361,7 +361,7 @@ snapshot with its source, editor, and optional template version. Existing rows
 from before this feature receive one migration snapshot of their current state;
 earlier content cannot be reconstructed retroactively.
 
-## AI regression evaluation
+## AI regression evaluation and model benchmark
 
 Run the deterministic baseline without external API calls:
 
@@ -381,9 +381,39 @@ accuracy, or production-network performance.
 Gemini evaluation is intentionally opt-in because it makes external requests:
 
 ```bash
-python scripts/evaluate_ai.py --provider gemini --allow-live-api \
+python scripts/evaluate_ai.py --provider gemini --model YOUR_GEMINI_MODEL \
+  --allow-live-api \
   --output output/ai-eval-gemini.json
 ```
+
+Compare the same fixtures across the deterministic baseline and two Gemini
+models (replace the placeholders with model IDs available to your API key):
+
+```bash
+python scripts/evaluate_ai.py --target local \
+  --target gemini:MODEL_A --target gemini:MODEL_B --allow-live-api \
+  --output output/ai-benchmark.json
+```
+
+The old `--provider gemini --allow-live-api` command remains supported and uses
+`GEMINI_MODEL` (plus its configured fallback). An explicit `--model` or
+`--target gemini:MODEL` pins that model and disables Gemini model fallback for a
+fair comparison. The operations workflow can still fall back to the local
+router on API failure; that case records `langgraph-local`, `fallback_used`,
+and a failed provider match.
+
+Each run records pass/fail, schema, guardrail, privacy, unsafe-claim, and tool
+selection checks; elapsed time; and the provider/model that actually served
+each case. `comparison` summarizes these metrics across targets. Token usage
+comes from Gemini response metadata when present; missing counts are marked
+`unavailable`. For automatic tool calls, the operations count may cover only
+the final response. No cost is inferred. These checks measure explicit
+contracts and ten tool-routing prompts, not subjective answer quality.
+
+`services/benchmark_provider.py` is the extension point for another runtime:
+implement the three workflow adapters, keep the same fixtures and scoring, and
+add the target to the CLI. A future Qwen/MLX adapter can be developed on Apple
+Silicon without changing this baseline.
 
 ## Background worker and retry queue
 
