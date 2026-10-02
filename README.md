@@ -410,10 +410,33 @@ comes from Gemini response metadata when present; missing counts are marked
 the final response. No cost is inferred. These checks measure explicit
 contracts and ten tool-routing prompts, not subjective answer quality.
 
-`services/benchmark_provider.py` is the extension point for another runtime:
-implement the three workflow adapters, keep the same fixtures and scoring, and
-add the target to the CLI. A future Qwen/MLX adapter can be developed on Apple
-Silicon without changing this baseline.
+For the optional Qwen/MLX target on Apple Silicon, install the separate
+dependency set and run the same fixtures. The first run downloads the model;
+[`mlx-community/Qwen2.5-1.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-1.5B-Instruct-4bit)
+is the default (about 869 MB) and can be replaced with another MLX-compatible
+model ID.
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements-mlx.txt
+.venv/bin/python scripts/evaluate_ai.py --target local --target mlx \
+  --output output/ai-benchmark-local-mlx.json
+```
+
+MLX is loaded only when selected, and is not part of the application default
+dependencies. Its adapter performs the same planning, follow-up, and read-only
+Operations Agent tasks. It retries malformed JSON once; both attempts count
+toward latency and token usage. Use `--target mlx:MODEL_ID` to compare another
+checkpoint. `services/benchmark_provider.py` is the extension point for
+further runtimes.
+
+The checked-in [Apple M1 comparison](evals/benchmark.mlx-m1.json) was run on a
+16 GB Mac with this 4-bit model: local **16/16**, MLX **15/16**, and MLX tool
+selection **10/10**. The remaining failure is an invalid JSON follow-up even
+after one repair attempt. MLX averaged **4.56 s per case**, including first-use
+model loading and the retry; this is a single-machine sample, not a production
+throughput measurement. The report contains every case and provider-reported
+token count, so the result is inspectable.
 
 ## Background worker and retry queue
 

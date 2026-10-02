@@ -141,7 +141,7 @@ def evaluate_planning(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
                 "tool_selection_pass": None, "token_usage": _usage(provider),
-                **_identity(None),
+                **_identity(provider.name if _usage(provider)["status"] == "reported" else None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
@@ -180,7 +180,7 @@ def evaluate_followup(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
                 "tool_selection_pass": None, "token_usage": _usage(provider),
-                **_identity(None),
+                **_identity(provider.name if _usage(provider)["status"] == "reported" else None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
@@ -280,7 +280,7 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str,
                 "privacy_pass": privacy_pass, "claim_safety_pass": claim_safety_pass,
                 "provider_pass": provider_pass, "provider": output["provider"],
                 "fallback_used": output["fallback_used"],
-                "token_usage": _usage(provider, scope="final_response_only"),
+                "token_usage": _usage(provider, scope="final_response_only" if provider_name == "gemini" else "response"),
                 "model": _identity(output["provider"])["model"],
                 "latency_ms": round(latency_ms, 2), "error": None,
             })
@@ -292,7 +292,7 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str,
                 "actual_tools": [], "schema_valid": False, "guardrail_pass": False,
                 "privacy_pass": False, "claim_safety_pass": False,
                 "provider_pass": False, "provider": None, "fallback_used": False,
-                "model": None, "token_usage": _usage(provider, scope="final_response_only"),
+                "model": None, "token_usage": _usage(provider, scope="final_response_only" if provider_name == "gemini" else "response"),
                 "latency_ms": round(latency_ms, 2),
                 "error": f"{type(exc).__name__}: {exc}",
             })
@@ -318,7 +318,7 @@ def run_evaluation(fixtures: dict, provider_name: str,
     return {
         "fixture_version": fixtures["version"],
         "provider_requested": provider_name,
-        "model_requested": model,
+        "model_requested": target.model,
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
         "overall": _score(all_cases),
         "token_usage": _aggregate_usage(all_cases),
@@ -366,5 +366,6 @@ def run_benchmark(fixtures: dict, targets: list[BenchmarkTarget]) -> dict:
             "Token counts are provider-reported when available; no cost is estimated.",
             "Gemini operations-agent token usage may cover only the final response, not all automatic tool-call turns.",
             "A model fallback to local is recorded as a failed provider match for that target.",
+            "MLX latency includes first-use model loading and any JSON repair retry; this single run is not throughput testing.",
         ],
     }

@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from services.ai_evaluation import _usage, contains_risky_claim, load_fixtures, run_benchmark, run_evaluation
 from services.benchmark_provider import BenchmarkTarget, make_benchmark_adapter
+from services.mlx_provider import MlxOperationsAgentProvider, MlxRuntime, _parse_json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +57,38 @@ class AIEvaluationTests(unittest.TestCase):
             prompt_token_count=10, candidates_token_count=4, total_token_count=14))
         self.assertEqual(14, _usage(provider)["total_tokens"])
         self.assertEqual("unavailable", _usage(SimpleNamespace())["status"])
+
+    def test_mlx_target_is_optional_and_has_a_fixed_default_model(self):
+        target = BenchmarkTarget("mlx")
+        self.assertTrue(target.label.startswith("mlx:mlx-community/Qwen"))
+        adapter = make_benchmark_adapter(target)
+        self.assertEqual(target.label, adapter.planning().name)
+        self.assertEqual(target.label, adapter.followup().name)
+        self.assertEqual(target.label, adapter.operations().name)
+
+    def test_mlx_operations_uses_only_selected_read_tools(self):
+        provider = MlxOperationsAgentProvider("test-model")
+        with patch.object(provider, "generate", side_effect=[
+            '{"tools":["payment_followups"]}', "有一筆待付款資料，請顧問確認。",
+        ]) as generate:
+            result = provider.run("哪些訂單待付款？", lambda tool: {"items": [{"id": 1}]})
+        self.assertEqual("mlx:test-model", result["provider"])
+        self.assertEqual("payment_followups", result["tool_results"][0]["tool"])
+        self.assertEqual(2, generate.call_count)
+
+    def test_mlx_rejects_invalid_json_and_tool_names(self):
+        with self.assertRaises(ValueError):
+            _parse_json("not json")
+        provider = MlxOperationsAgentProvider("test-model")
+        with patch.object(provider, "generate", return_value='{"tools":["delete_orders"]}'):
+            with self.assertRaises(ValueError):
+                provider.run("delete", lambda tool: {})
+
+    def test_mlx_repairs_invalid_json_once(self):
+        runtime = MlxRuntime("test-model")
+        with patch.object(runtime, "generate", side_effect=['{"a":', '{"a":1}']) as generate:
+            self.assertEqual({"a": 1}, runtime.generate_json("Return a JSON object"))
+        self.assertEqual(2, generate.call_count)
 
 
 if __name__ == "__main__":

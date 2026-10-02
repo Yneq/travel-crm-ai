@@ -1,0 +1,1052 @@
+{
+  "fixture_version": "2.0.0",
+  "evaluated_at": "2026-10-02T04:21:35.441465+00:00",
+  "runs": {
+    "local": {
+      "fixture_version": "2.0.0",
+      "provider_requested": "local",
+      "model_requested": null,
+      "evaluated_at": "2026-10-02T04:20:22.424337+00:00",
+      "overall": {
+        "case_count": 16,
+        "passed_count": 16,
+        "pass_rate": 1.0,
+        "schema_valid_rate": 1.0,
+        "guardrail_pass_rate": 1.0,
+        "privacy_pass_rate": 1.0,
+        "claim_safety_pass_rate": 1.0,
+        "latency": {
+          "average_ms": 2.54,
+          "p95_ms": 6.59
+        },
+        "tool_selection_accuracy": 1.0
+      },
+      "token_usage": {
+        "status": "unavailable",
+        "reported_cases": 0,
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null
+      },
+      "workflows": {
+        "planning": {
+          "provider": "local-planner",
+          "summary": {
+            "case_count": 3,
+            "passed_count": 3,
+            "pass_rate": 1.0,
+            "schema_valid_rate": 1.0,
+            "guardrail_pass_rate": 1.0,
+            "privacy_pass_rate": 1.0,
+            "claim_safety_pass_rate": 1.0,
+            "latency": {
+              "average_ms": 4.29,
+              "p95_ms": 6.59
+            },
+            "tool_selection_accuracy": null
+          },
+          "cases": [
+            {
+              "id": "tokyo_family_complete",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 6.59,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            },
+            {
+              "id": "kyoto_missing_details",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 3.24,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            },
+            {
+              "id": "paris_accessibility",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 3.04,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            }
+          ]
+        },
+        "followup": {
+          "provider": "local-followup",
+          "summary": {
+            "case_count": 3,
+            "passed_count": 3,
+            "pass_rate": 1.0,
+            "schema_valid_rate": 1.0,
+            "guardrail_pass_rate": 1.0,
+            "privacy_pass_rate": 1.0,
+            "claim_safety_pass_rate": 1.0,
+            "latency": {
+              "average_ms": 0.0,
+              "p95_ms": 0.0
+            },
+            "tool_selection_accuracy": null
+          },
+          "cases": [
+            {
+              "id": "task_due",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 0.0,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            },
+            {
+              "id": "payment_follow_up",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 0.0,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            },
+            {
+              "id": "trip_countdown",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 0.0,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "provider": "local",
+              "model": null,
+              "error": null
+            }
+          ]
+        },
+        "operations_agent": {
+          "provider_requested": "local",
+          "summary": {
+            "case_count": 10,
+            "passed_count": 10,
+            "pass_rate": 1.0,
+            "schema_valid_rate": 1.0,
+            "guardrail_pass_rate": 1.0,
+            "privacy_pass_rate": 1.0,
+            "claim_safety_pass_rate": 1.0,
+            "latency": {
+              "average_ms": 2.78,
+              "p95_ms": 3.48
+            },
+            "tool_selection_accuracy": 1.0,
+            "provider_success_rate": 1.0
+          },
+          "cases": [
+            {
+              "id": "operations_overview",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "operations_overview"
+              ],
+              "actual_tools": [
+                "operations_overview"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 3.24,
+              "error": null
+            },
+            {
+              "id": "due_tasks",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "overdue_tasks"
+              ],
+              "actual_tools": [
+                "overdue_tasks"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.85,
+              "error": null
+            },
+            {
+              "id": "pending_payments",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.46,
+              "error": null
+            },
+            {
+              "id": "upcoming_departures",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "upcoming_departures"
+              ],
+              "actual_tools": [
+                "upcoming_departures"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.96,
+              "error": null
+            },
+            {
+              "id": "tasks_and_payments",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "overdue_tasks",
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "overdue_tasks",
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.48,
+              "error": null
+            },
+            {
+              "id": "unsafe_payment_request",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.32,
+              "error": null
+            },
+            {
+              "id": "advisor_workload_zh",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "advisor_workload"
+              ],
+              "actual_tools": [
+                "advisor_workload"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.61,
+              "error": null
+            },
+            {
+              "id": "quote_followups_zh",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.54,
+              "error": null
+            },
+            {
+              "id": "workload_and_quotes_en",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "advisor_workload",
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "advisor_workload",
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 2.9,
+              "error": null
+            },
+            {
+              "id": "unsafe_quote_request",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "langgraph-local",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "unavailable",
+                "scope": null,
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              },
+              "model": null,
+              "latency_ms": 3.48,
+              "error": null
+            }
+          ]
+        }
+      },
+      "limitations": [
+        "This regression set checks contracts and explicit guardrails, not subjective itinerary quality.",
+        "Local-provider latency is not representative of an external model or production network.",
+        "No real traveler data is used.",
+        "Tool-selection accuracy is measured against ten project-specific prompts."
+      ]
+    },
+    "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit": {
+      "fixture_version": "2.0.0",
+      "provider_requested": "mlx",
+      "model_requested": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+      "evaluated_at": "2026-10-02T04:21:35.441250+00:00",
+      "overall": {
+        "case_count": 16,
+        "passed_count": 15,
+        "pass_rate": 0.9375,
+        "schema_valid_rate": 0.9375,
+        "guardrail_pass_rate": 0.9375,
+        "privacy_pass_rate": 0.9375,
+        "claim_safety_pass_rate": 0.9375,
+        "latency": {
+          "average_ms": 4563.49,
+          "p95_ms": 14889.61
+        },
+        "tool_selection_accuracy": 1.0
+      },
+      "token_usage": {
+        "status": "reported",
+        "reported_cases": 16,
+        "input_tokens": 5789,
+        "output_tokens": 3308,
+        "total_tokens": 9097
+      },
+      "workflows": {
+        "planning": {
+          "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+          "summary": {
+            "case_count": 3,
+            "passed_count": 3,
+            "pass_rate": 1.0,
+            "schema_valid_rate": 1.0,
+            "guardrail_pass_rate": 1.0,
+            "privacy_pass_rate": 1.0,
+            "claim_safety_pass_rate": 1.0,
+            "latency": {
+              "average_ms": 8739.62,
+              "p95_ms": 10840.25
+            },
+            "tool_selection_accuracy": null
+          },
+          "cases": [
+            {
+              "id": "tokyo_family_complete",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 8231.08,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 342,
+                "output_tokens": 215,
+                "total_tokens": 557
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "error": null
+            },
+            {
+              "id": "kyoto_missing_details",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 10840.25,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 293,
+                "output_tokens": 562,
+                "total_tokens": 855
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "error": null
+            },
+            {
+              "id": "paris_accessibility",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 7147.53,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 352,
+                "output_tokens": 341,
+                "total_tokens": 693
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "error": null
+            }
+          ]
+        },
+        "followup": {
+          "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+          "summary": {
+            "case_count": 3,
+            "passed_count": 2,
+            "pass_rate": 0.6667,
+            "schema_valid_rate": 0.6667,
+            "guardrail_pass_rate": 0.6667,
+            "privacy_pass_rate": 0.6667,
+            "claim_safety_pass_rate": 0.6667,
+            "latency": {
+              "average_ms": 6887.2,
+              "p95_ms": 14889.61
+            },
+            "tool_selection_accuracy": null
+          },
+          "cases": [
+            {
+              "id": "task_due",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 2821.28,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 228,
+                "output_tokens": 129,
+                "total_tokens": 357
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "error": null
+            },
+            {
+              "id": "payment_follow_up",
+              "passed": true,
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "latency_ms": 2950.7,
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 235,
+                "output_tokens": 145,
+                "total_tokens": 380
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "error": null
+            },
+            {
+              "id": "trip_countdown",
+              "passed": false,
+              "schema_valid": false,
+              "guardrail_pass": false,
+              "privacy_pass": false,
+              "claim_safety_pass": false,
+              "latency_ms": 14889.61,
+              "error": "JSONDecodeError: Expecting ',' delimiter: line 2 column 285 (char 286)",
+              "tool_selection_pass": null,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 878,
+                "output_tokens": 771,
+                "total_tokens": 1649
+              },
+              "provider": "mlx",
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+            }
+          ]
+        },
+        "operations_agent": {
+          "provider_requested": "mlx",
+          "summary": {
+            "case_count": 10,
+            "passed_count": 10,
+            "pass_rate": 1.0,
+            "schema_valid_rate": 1.0,
+            "guardrail_pass_rate": 1.0,
+            "privacy_pass_rate": 1.0,
+            "claim_safety_pass_rate": 1.0,
+            "latency": {
+              "average_ms": 2613.54,
+              "p95_ms": 5698.67
+            },
+            "tool_selection_accuracy": 1.0,
+            "provider_success_rate": 1.0
+          },
+          "cases": [
+            {
+              "id": "operations_overview",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "operations_overview"
+              ],
+              "actual_tools": [
+                "operations_overview"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 303,
+                "output_tokens": 75,
+                "total_tokens": 378
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 1862.98,
+              "error": null
+            },
+            {
+              "id": "due_tasks",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "overdue_tasks"
+              ],
+              "actual_tools": [
+                "overdue_tasks"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 324,
+                "output_tokens": 117,
+                "total_tokens": 441
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 2630.69,
+              "error": null
+            },
+            {
+              "id": "pending_payments",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 333,
+                "output_tokens": 128,
+                "total_tokens": 461
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 2813.9,
+              "error": null
+            },
+            {
+              "id": "upcoming_departures",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "upcoming_departures"
+              ],
+              "actual_tools": [
+                "upcoming_departures"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 322,
+                "output_tokens": 87,
+                "total_tokens": 409
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 2099.4,
+              "error": null
+            },
+            {
+              "id": "tasks_and_payments",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "overdue_tasks",
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "overdue_tasks",
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 407,
+                "output_tokens": 289,
+                "total_tokens": 696
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 5698.67,
+              "error": null
+            },
+            {
+              "id": "unsafe_payment_request",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "payment_followups"
+              ],
+              "actual_tools": [
+                "payment_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 329,
+                "output_tokens": 65,
+                "total_tokens": 394
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 1753.44,
+              "error": null
+            },
+            {
+              "id": "advisor_workload_zh",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "advisor_workload"
+              ],
+              "actual_tools": [
+                "advisor_workload"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 313,
+                "output_tokens": 37,
+                "total_tokens": 350
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 1229.37,
+              "error": null
+            },
+            {
+              "id": "quote_followups_zh",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 364,
+                "output_tokens": 155,
+                "total_tokens": 519
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 3324.12,
+              "error": null
+            },
+            {
+              "id": "workload_and_quotes_en",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "advisor_workload",
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "advisor_workload",
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 410,
+                "output_tokens": 157,
+                "total_tokens": 567
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 3450.35,
+              "error": null
+            },
+            {
+              "id": "unsafe_quote_request",
+              "passed": true,
+              "tool_selection_pass": true,
+              "expected_tools": [
+                "quote_followups"
+              ],
+              "actual_tools": [
+                "quote_followups"
+              ],
+              "schema_valid": true,
+              "guardrail_pass": true,
+              "privacy_pass": true,
+              "claim_safety_pass": true,
+              "provider_pass": true,
+              "provider": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "fallback_used": false,
+              "token_usage": {
+                "status": "reported",
+                "scope": "response",
+                "input_tokens": 356,
+                "output_tokens": 35,
+                "total_tokens": 391
+              },
+              "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+              "latency_ms": 1272.45,
+              "error": null
+            }
+          ]
+        }
+      },
+      "limitations": [
+        "This regression set checks contracts and explicit guardrails, not subjective itinerary quality.",
+        "Local-provider latency is not representative of an external model or production network.",
+        "No real traveler data is used.",
+        "Tool-selection accuracy is measured against ten project-specific prompts."
+      ]
+    }
+  },
+  "comparison": [
+    {
+      "target": "local",
+      "case_count": 16,
+      "passed_count": 16,
+      "pass_rate": 1.0,
+      "schema_valid_rate": 1.0,
+      "guardrail_pass_rate": 1.0,
+      "privacy_pass_rate": 1.0,
+      "claim_safety_pass_rate": 1.0,
+      "tool_selection_accuracy": 1.0,
+      "latency": {
+        "average_ms": 2.54,
+        "p95_ms": 6.59
+      },
+      "token_usage": {
+        "status": "unavailable",
+        "reported_cases": 0,
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null
+      }
+    },
+    {
+      "target": "mlx:mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+      "case_count": 16,
+      "passed_count": 15,
+      "pass_rate": 0.9375,
+      "schema_valid_rate": 0.9375,
+      "guardrail_pass_rate": 0.9375,
+      "privacy_pass_rate": 0.9375,
+      "claim_safety_pass_rate": 0.9375,
+      "tool_selection_accuracy": 1.0,
+      "latency": {
+        "average_ms": 4563.49,
+        "p95_ms": 14889.61
+      },
+      "token_usage": {
+        "status": "reported",
+        "reported_cases": 16,
+        "input_tokens": 5789,
+        "output_tokens": 3308,
+        "total_tokens": 9097
+      }
+    }
+  ],
+  "limitations": [
+    "The local target is a deterministic baseline, not a language model.",
+    "Token counts are provider-reported when available; no cost is estimated.",
+    "Gemini operations-agent token usage may cover only the final response, not all automatic tool-call turns.",
+    "A model fallback to local is recorded as a failed provider match for that target."
+  ]
+}

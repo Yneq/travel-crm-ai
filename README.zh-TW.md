@@ -352,8 +352,28 @@ Fallback。明確指定 `--model` 或 `--target gemini:MODEL` 時，會固定該
 才記錄，缺少的值標示 `unavailable`，不估算 Cost。自動 Tool Calling 的 Token 計數
 可能只涵蓋最後回應。這些指標評估明確規則與十個工具路由題，不能代表主觀回答品質。
 
-`services/benchmark_provider.py` 是新增模型 Runtime 的接點；未來可在 Apple Silicon
-接入 Qwen/MLX，沿用同一套 Fixtures 與評分。
+Apple Silicon 可選裝 Qwen/MLX，並沿用同一套 Fixtures；首次執行會下載預設的
+[`mlx-community/Qwen2.5-1.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-1.5B-Instruct-4bit)
+模型（約 869 MB）：
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements-mlx.txt
+.venv/bin/python scripts/evaluate_ai.py --target local --target mlx \
+  --output output/ai-benchmark-local-mlx.json
+```
+
+MLX 只在選用時載入，不加入應用程式的預設相依套件。它會跑行程規劃、Follow-up 與
+唯讀 Operations Agent 相同的案例。JSON 格式錯誤最多重試一次，兩次生成都計入
+Latency 與 Token Usage；失敗仍保留在報告中。
+可用 `--target mlx:MODEL_ID` 指定其他相容模型。`services/benchmark_provider.py`
+是加入其他模型 Runtime 的接點。
+
+Repo 內的 [Apple M1 比較報告](evals/benchmark.mlx-m1.json) 使用 16 GB Mac
+與上述 4-bit 模型：本機 Baseline **16/16**、MLX **15/16**、MLX 工具選擇
+**10/10**。唯一失敗是 Follow-up 在一次修正重試後仍輸出無效 JSON。MLX 平均每案
+**4.56 秒**，包含首次載入模型及重試；這是單機樣本，不是正式服務吞吐量測試。
+報告保留逐案結果與實際 Token 計數。
 
 ## Background Worker 與 Retry Queue
 

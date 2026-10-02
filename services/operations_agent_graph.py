@@ -231,7 +231,7 @@ def run_operations_agent_with_fallback(
                 "read_only_tools": True,
                 "requires_human_confirmation": True,
                 "external_actions_executed": False,
-                "note": "Gemini 只能呼叫唯讀 CRM 工具，不會自行建立訂單、付款或發送訊息。",
+                "note": "模型只能呼叫唯讀 CRM 工具，不會自行建立訂單、付款或發送訊息。",
             },
             "provider": model_result["provider"],
             "fallback_used": model_result.get("fallback_used", False),

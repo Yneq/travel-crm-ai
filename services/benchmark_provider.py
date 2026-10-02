@@ -9,6 +9,7 @@ from typing import Protocol
 from services.followup_provider import get_followup_provider
 from services.operations_agent_provider import get_operations_agent_provider
 from services.planning_provider import get_planning_provider
+from services.mlx_provider import DEFAULT_MLX_MODEL
 
 
 @dataclass(frozen=True)
@@ -17,10 +18,12 @@ class BenchmarkTarget:
     model: str | None = None
 
     def __post_init__(self):
-        if self.provider not in ("local", "gemini"):
+        if self.provider not in ("local", "gemini", "mlx"):
             raise ValueError(f"Unsupported benchmark provider: {self.provider}")
         if self.provider == "local" and self.model:
             raise ValueError("The deterministic local provider has no model")
+        if self.provider == "mlx" and not self.model:
+            object.__setattr__(self, "model", DEFAULT_MLX_MODEL)
 
     @property
     def label(self) -> str:
@@ -40,14 +43,23 @@ class ApplicationBenchmarkAdapter:
         self.target = target
 
     def planning(self):
+        if self.target.provider == "mlx":
+            from services.mlx_provider import MlxPlanningProvider
+            return MlxPlanningProvider(self.target.model)
         return get_planning_provider(self.target.provider, model=self.target.model)
 
     def followup(self):
+        if self.target.provider == "mlx":
+            from services.mlx_provider import MlxFollowUpProvider
+            return MlxFollowUpProvider(self.target.model)
         return get_followup_provider(self.target.provider, model=self.target.model)
 
     def operations(self):
         if self.target.provider == "local":
             return None
+        if self.target.provider == "mlx":
+            from services.mlx_provider import MlxOperationsAgentProvider
+            return MlxOperationsAgentProvider(self.target.model)
         return get_operations_agent_provider(self.target.provider, model=self.target.model)
 
 
