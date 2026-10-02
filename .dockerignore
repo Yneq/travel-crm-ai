@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+.env
+k8s/local/secrets.env
+output
+tmp
+tests
+docs
+evals
+finetune
+k8s

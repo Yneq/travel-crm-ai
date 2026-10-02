@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: travel-crm-ai-api:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "scripts/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: voyageops-config
+          env:
+            - name: RDS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: voyageops-secrets
+                  key: RDS_PASSWORD
+          readinessProbe:
+            exec:
+              command: ["python", "scripts/check_worker_ready.py"]
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

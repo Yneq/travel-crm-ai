@@ -19,6 +19,15 @@ READ_TOOLS = (
 )
 
 
+def build_mlx_followup_instruction(context: dict) -> str:
+    return (
+        build_followup_prompt(context)
+        + "\n只輸出 JSON 物件，包含 internal_summary、recommended_steps"
+          "（字串陣列）、message_subject、message_body、requires_human_review"
+          "（必須是 true）。"
+    )
+
+
 @lru_cache(maxsize=2)
 def _load(model_id: str):
     try:
@@ -113,11 +122,8 @@ class MlxPlanningProvider(MlxRuntime):
 class MlxFollowUpProvider(MlxRuntime):
     def generate_followup(self, context: dict) -> dict:
         self.last_usage = None
-        prompt = build_followup_prompt(context)
         result = self.generate_json(
-            prompt + "\n只輸出 JSON 物件，包含 internal_summary、recommended_steps"
-            "（字串陣列）、message_subject、message_body、requires_human_review"
-            "（必須是 true）。",
+            build_mlx_followup_instruction(context),
             max_tokens=768,
         )
         return GeneratedFollowUp.model_validate(result).model_dump()

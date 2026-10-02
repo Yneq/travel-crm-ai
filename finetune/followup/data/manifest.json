@@ -1,0 +1,20 @@
+{
+  "task": "synthetic_followup_json",
+  "source": "Synthetic reminder templates labeled by LocalFollowUpProvider",
+  "purpose": "MLX LoRA pipeline smoke test, not evidence of customer-task improvement",
+  "eval_fixture_overlap": "No prompts copied from evals/fixtures.json",
+  "splits": {
+    "train": {
+      "examples": 60,
+      "sha256": "0bae35d5d6153688fb082428fb9172dcd020bd5c149c6a37346d3e505306b526"
+    },
+    "valid": {
+      "examples": 12,
+      "sha256": "00561d3320f78c72d6b3bad3aa3c7a9bd06162702157dddd875605f5c71eacf0"
+    },
+    "test": {
+      "examples": 12,
+      "sha256": "d155be80e48f32436c2f2a56184e4cc422c325c3677f4649f1f6f9df537a5781"
+    }
+  }
+}

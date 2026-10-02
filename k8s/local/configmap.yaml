@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voyageops-config
+data:
+  ALGORITHM: HS256
+  DB_USER: travel_crm
+  DB_NAME: travel_crm
+  RDS_HOST: mysql
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  CORS_ORIGINS: http://localhost:8080
+  ENABLE_MOCK_PAYMENT: "true"
+  PAYMENT_PROVIDER: mockpay
+  EMAIL_PROVIDER: mock-email
+  AI_PLANNING_PROVIDER: local
+  AI_FOLLOWUP_PROVIDER: local
+  AI_OPERATIONS_PROVIDER: local
+  WORKER_POLL_SECONDS: "2"
+  REMINDER_SCAN_INTERVAL_SECONDS: "300"

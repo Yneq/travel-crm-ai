@@ -375,6 +375,17 @@ Repo 內的 [Apple M1 比較報告](evals/benchmark.mlx-m1.json) 使用 16 GB Ma
 **4.56 秒**，包含首次載入模型及重試；這是單機樣本，不是正式服務吞吐量測試。
 報告保留逐案結果與實際 Token 計數。
 
+## 本機 Kubernetes 與微調資料
+
+[Kubernetes 本機部署說明](docs/KUBERNETES.md)包含既有 API、worker、MySQL 與 Redis，
+並設定健康檢查、MySQL 持久化儲存及資料庫遷移。部署使用 deterministic AI provider，
+不需 NVIDIA GPU；可先用 `kubectl kustomize k8s/local` 離線檢查設定。
+
+[合成 Follow-up 資料集](finetune/followup/README.md)採 MLX-LM chat 格式，包含
+60 筆訓練、12 筆驗證與 12 筆測試。`python scripts/build_followup_dataset.py`
+可重建資料；`bash scripts/train_followup_mlx.sh` 在 Apple Silicon 上執行小型
+量化 LoRA 練習並測試保留資料的 loss。這是訓練流程驗證，尚不能證明客戶任務品質提升。
+
 ## Background Worker 與 Retry Queue
 
 `worker` Service 會依設定的時間區段建立一筆具 Idempotency 保護的提醒掃描工作。

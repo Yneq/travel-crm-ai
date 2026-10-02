@@ -1,0 +1,2 @@
+-r requirements-mlx.txt
+mlx-lm[train]==0.32.0

@@ -438,6 +438,20 @@ model loading and the retry; this is a single-machine sample, not a production
 throughput measurement. The report contains every case and provider-reported
 token count, so the result is inspectable.
 
+## Local Kubernetes and fine-tuning data
+
+The [local Kubernetes guide](docs/KUBERNETES.md) deploys the existing API,
+worker, MySQL, and Redis with probes, a persistent MySQL volume, and a
+migration init container. It uses local deterministic AI providers and requires
+no NVIDIA GPU. Render the manifests offline with `kubectl kustomize k8s/local`.
+
+The [synthetic follow-up dataset](finetune/followup/README.md) contains
+60 training, 12 validation, and 12 test examples in MLX-LM chat format.
+`python scripts/build_followup_dataset.py` regenerates it;
+`bash scripts/train_followup_mlx.sh` runs a small local quantized LoRA
+exercise and tests held-out loss on Apple Silicon. This is a pipeline exercise,
+not evidence that fine-tuning improved the customer task.
+
 ## Background worker and retry queue
 
 The `worker` service creates one idempotent reminder-scan job per configured time
