@@ -1,11 +1,12 @@
+import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from services.ai_evaluation import _usage, contains_risky_claim, load_fixtures, run_benchmark, run_evaluation
 from services.benchmark_provider import BenchmarkTarget, make_benchmark_adapter
-from services.mlx_provider import MlxOperationsAgentProvider, MlxRuntime, _parse_json
+from services.mlx_provider import MlxOperationsAgentProvider, MlxRuntime, _load, _parse_json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,6 +90,14 @@ class AIEvaluationTests(unittest.TestCase):
         with patch.object(runtime, "generate", side_effect=['{"a":', '{"a":1}']) as generate:
             self.assertEqual({"a": 1}, runtime.generate_json("Return a JSON object"))
         self.assertEqual(2, generate.call_count)
+
+    def test_mlx_loader_passes_optional_adapter_to_model_runtime(self):
+        loader = Mock(return_value=(object(), object()))
+        with patch.dict(sys.modules, {"mlx_lm": SimpleNamespace(load=loader)}):
+            _load.cache_clear()
+            _load("test-model", "/tmp/test-adapter")
+            loader.assert_called_once_with("test-model", adapter_path="/tmp/test-adapter")
+        _load.cache_clear()
 
 
 if __name__ == "__main__":
