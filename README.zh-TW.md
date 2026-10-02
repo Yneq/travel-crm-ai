@@ -384,7 +384,9 @@ Repo 內的 [Apple M1 比較報告](evals/benchmark.mlx-m1.json) 使用 16 GB Ma
 [合成 Follow-up 資料集](finetune/followup/README.md)採 MLX-LM chat 格式，包含
 60 筆訓練、12 筆驗證與 12 筆測試。`python scripts/build_followup_dataset.py`
 可重建資料；`bash scripts/train_followup_mlx.sh` 在 Apple Silicon 上執行小型
-量化 LoRA 練習並測試保留資料的 loss。這是訓練流程驗證，尚不能證明客戶任務品質提升。
+量化 LoRA 練習並測試保留資料的 loss，接著將基礎模型與微調模型對同一組測試案例的
+比較寫入 `output/followup-adapter-comparison.json`。這是訓練流程驗證，尚不能證明
+客戶任務品質提升。
 
 ## Background Worker 與 Retry Queue
 

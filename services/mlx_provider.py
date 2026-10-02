@@ -29,12 +29,12 @@ def build_mlx_followup_instruction(context: dict) -> str:
 
 
 @lru_cache(maxsize=2)
-def _load(model_id: str):
+def _load(model_id: str, adapter_path: str | None = None):
     try:
         from mlx_lm import load
     except ImportError as exc:
         raise RuntimeError("MLX target requires the optional mlx-lm package") from exc
-    return load(model_id)
+    return load(model_id, adapter_path=adapter_path)
 
 
 def _parse_json(text: str) -> dict:
@@ -52,8 +52,9 @@ def _parse_json(text: str) -> dict:
 
 
 class MlxRuntime:
-    def __init__(self, model_id: str):
+    def __init__(self, model_id: str, *, adapter_path: str | None = None):
         self.model_id = model_id
+        self.adapter_path = adapter_path
         self.name = f"mlx:{model_id}"
         self.last_usage = None
 
@@ -61,7 +62,7 @@ class MlxRuntime:
         from mlx_lm import stream_generate
         from mlx_lm.sample_utils import make_sampler
 
-        model, tokenizer = _load(self.model_id)
+        model, tokenizer = _load(self.model_id, self.adapter_path)
         prompt = tokenizer.apply_chat_template(
             [{"role": "user", "content": instruction}],
             tokenize=False,

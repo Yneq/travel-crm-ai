@@ -34,3 +34,9 @@ mkdir -p "$ADAPTER_DIR" "$HF_HOME"
   --adapter-path "$ADAPTER_DIR" \
   --test \
   --test-batches -1
+
+.venv/bin/python scripts/compare_followup_adapter.py \
+  --model "$MODEL_ID" \
+  --adapter-path "$ADAPTER_DIR" \
+  --test-data "$DATA_DIR/test.jsonl" \
+  --output output/followup-adapter-comparison.json

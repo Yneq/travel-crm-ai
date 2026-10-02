@@ -449,8 +449,10 @@ The [synthetic follow-up dataset](finetune/followup/README.md) contains
 60 training, 12 validation, and 12 test examples in MLX-LM chat format.
 `python scripts/build_followup_dataset.py` regenerates it;
 `bash scripts/train_followup_mlx.sh` runs a small local quantized LoRA
-exercise and tests held-out loss on Apple Silicon. This is a pipeline exercise,
-not evidence that fine-tuning improved the customer task.
+exercise and tests held-out loss on Apple Silicon. It then writes
+`output/followup-adapter-comparison.json`, comparing the base and adapted
+models on the same held-out cases. This is a pipeline exercise, not evidence
+that fine-tuning improved the customer task.
 
 ## Background worker and retry queue
 

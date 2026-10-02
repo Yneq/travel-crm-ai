@@ -17,5 +17,11 @@ On an Apple Silicon Mac, install `requirements-mlx-train.txt` into `.venv`, then
 run `bash scripts/train_followup_mlx.sh`. It trains for 30 iterations with batch
 size 1, masks the user prompt in the loss, and writes the adapter under ignored
 `output/followup-adapters`. The script then evaluates loss on `test.jsonl`.
+It also compares the base model and trained adapter on the same 12 held-out
+synthetic examples, writing `output/followup-adapter-comparison.json` with
+schema, human-review, privacy, unsafe-claim, exact-label-match, latency, and
+reported token counts. Compare those two columns before making any claim about
+the adapter. Training examples and this test set are disjoint, but their labels
+share the same deterministic template source.
 The base model is the same 4-bit Qwen used in the checked-in benchmark. MLX-LM
 documents that LoRA training on a quantized model is QLoRA.
