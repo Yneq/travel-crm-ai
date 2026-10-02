@@ -27,8 +27,10 @@ The base model is the same 4-bit Qwen used in the checked-in benchmark. MLX-LM
 documents that LoRA training on a quantized model is QLoRA.
 
 For an optional **free Colab CUDA GPU**, use
-[`notebooks/colab_qlora_followup.ipynb`](../../notebooks/colab_qlora_followup.ipynb)
-after pushing the branch to GitHub. This uses Hugging Face's original
+[`notebooks/colab_qlora_followup.ipynb`](../../notebooks/colab_qlora_followup.ipynb).
+If the latest branch has not been pushed to GitHub, the notebook asks you to
+select the local `travel-crm-ai-mac-stages.patch` file and applies it in its
+temporary runtime. This uses Hugging Face's original
 `Qwen/Qwen2.5-1.5B-Instruct`, not the MLX checkpoint; adapters from the two
 runtimes are not interchangeable. The notebook stops if no CUDA GPU is
 available, installs only optional CUDA dependencies, and calls
