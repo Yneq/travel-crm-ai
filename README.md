@@ -437,6 +437,8 @@ after one repair attempt. MLX averaged **4.56 s per case**, including first-use
 model loading and the retry; this is a single-machine sample, not a production
 throughput measurement. The report contains every case and provider-reported
 token count, so the result is inspectable.
+The [model-selection record](docs/MODEL_SELECTION.zh-TW.md) explains the
+current decision and the limits of this local comparison.
 
 ## Local Kubernetes and fine-tuning data
 

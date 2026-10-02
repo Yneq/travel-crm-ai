@@ -374,6 +374,7 @@ Repo 內的 [Apple M1 比較報告](evals/benchmark.mlx-m1.json) 使用 16 GB Ma
 **10/10**。唯一失敗是 Follow-up 在一次修正重試後仍輸出無效 JSON。MLX 平均每案
 **4.56 秒**，包含首次載入模型及重試；這是單機樣本，不是正式服務吞吐量測試。
 報告保留逐案結果與實際 Token 計數。
+[模型選型紀錄](docs/MODEL_SELECTION.zh-TW.md)整理了此結果對目前 CRM 任務的決策與限制。
 
 ## 本機 Kubernetes 與微調資料
 
