@@ -455,6 +455,9 @@ exercise and tests held-out loss on Apple Silicon. It then writes
 `output/followup-adapter-comparison.json`, comparing the base and adapted
 models on the same held-out cases. This is a pipeline exercise, not evidence
 that fine-tuning improved the customer task.
+An optional [free-Colab CUDA notebook](notebooks/colab_qlora_followup.ipynb)
+runs the same synthetic data through a separate Hugging Face QLoRA exercise;
+it requires an available free GPU and never selects a paid runtime.
 
 ## Background worker and retry queue
 

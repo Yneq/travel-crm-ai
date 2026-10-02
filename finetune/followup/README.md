@@ -25,3 +25,14 @@ the adapter. Training examples and this test set are disjoint, but their labels
 share the same deterministic template source.
 The base model is the same 4-bit Qwen used in the checked-in benchmark. MLX-LM
 documents that LoRA training on a quantized model is QLoRA.
+
+For an optional **free Colab CUDA GPU**, use
+[`notebooks/colab_qlora_followup.ipynb`](../../notebooks/colab_qlora_followup.ipynb)
+after pushing the branch to GitHub. This uses Hugging Face's original
+`Qwen/Qwen2.5-1.5B-Instruct`, not the MLX checkpoint; adapters from the two
+runtimes are not interchangeable. The notebook stops if no CUDA GPU is
+available, installs only optional CUDA dependencies, and calls
+`scripts/train_followup_cuda.py`. It compares held-out loss before and after
+30 QLoRA steps and writes a local report. Do not select a paid Colab plan or
+purchase compute units for this exercise. Free GPU allocation is not
+guaranteed. No adapter is pushed to a model hub.
