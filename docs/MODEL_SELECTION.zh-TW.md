@@ -3,6 +3,10 @@
 這份紀錄回答一個具體問題：對目前的 CRM 行程規劃、後續聯絡草稿與唯讀營運問答，
 是否值得把預設的 deterministic provider 換成 Mac 本機的 Qwen 1.5B 4-bit？
 資料來源是 [`evals/benchmark.mlx-m1.json`](../evals/benchmark.mlx-m1.json)。
+這份歷史報告的 Privacy 指標只檢查提示中的測試聯絡資料；目前評測程式也會檢查模型
+回覆，並在新報告標示 `privacy_check` 定義。要用新版隱私指標比較兩者，需在可使用
+Metal 的 Mac 上重新執行 MLX 評測。這是測試資料中 email／電話的完全相符檢查，
+不是通用個資偵測。
 
 | 設定 | 通過案例 | Schema | Guardrail | Privacy | 工具選擇 | 平均延遲／案例 | P95 延遲 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |

@@ -409,6 +409,11 @@ comes from Gemini response metadata when present; missing counts are marked
 `unavailable`. For automatic tool calls, the operations count may cover only
 the final response. No cost is inferred. These checks measure explicit
 contracts and ten tool-routing prompts, not subjective answer quality.
+The current privacy check verifies that the fixture member's exact email and
+phone occur in neither the model prompt nor its returned content. The report's
+`privacy_check` field identifies this definition; it is not a general PII
+detector. Older checked-in reports predate the response check, so rerun a target
+before comparing its privacy rate with a new report.
 Each case also records `provider_attempted` and `model_attempted`. If generation
 fails before a usable response, `provider` and `model` are null while the
 attempted fields retain the selected target. If the Operations Agent falls back

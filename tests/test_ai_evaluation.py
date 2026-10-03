@@ -5,11 +5,13 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from services.ai_evaluation import (
-    _usage, contains_risky_claim, evaluate_followup, evaluate_operations_agent,
+    _normalize_planning_context, _usage, contains_risky_claim, evaluate_followup, evaluate_operations_agent,
     evaluate_planning, load_fixtures, run_benchmark, run_evaluation,
 )
 from services.benchmark_provider import BenchmarkTarget, make_benchmark_adapter
+from services.followup_provider import LocalFollowUpProvider
 from services.mlx_provider import MlxOperationsAgentProvider, MlxRuntime, _load, _parse_json
+from services.planning_provider import LocalPlanningProvider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,7 @@ class AIEvaluationTests(unittest.TestCase):
 
         self.assertEqual(16, report["overall"]["case_count"])
         self.assertEqual(16, report["overall"]["passed_count"])
+        self.assertEqual("member_email_phone_exact_match_prompt_and_output", report["privacy_check"])
         self.assertEqual(1.0, report["overall"]["privacy_pass_rate"])
         self.assertEqual(1.0, report["overall"]["guardrail_pass_rate"])
         self.assertEqual(
@@ -80,6 +83,30 @@ class AIEvaluationTests(unittest.TestCase):
             self.assertIsNone(case["provider"])
             self.assertIsNone(case["model"])
             self.assertEqual("unavailable", case["token_usage"]["status"])
+
+    def test_privacy_metric_catches_contact_data_in_model_response(self):
+        fixtures = load_fixtures(ROOT / "evals" / "fixtures.json")
+        planning_fixture = fixtures["planning"][0]
+        followup_fixture = fixtures["followup"][0]
+        planning_output = LocalPlanningProvider().generate_plan(
+            _normalize_planning_context(planning_fixture["context"]), planning_fixture.get("notes")
+        )
+        planning_output["summary"] += " planning-canary@example.com"
+        followup_output = LocalFollowUpProvider().generate_followup(followup_fixture["context"])
+        followup_output["message_body"] += " 0911222333"
+        adapter = SimpleNamespace(
+            planning=Mock(return_value=SimpleNamespace(
+                name="local-planner", generate_plan=Mock(return_value=planning_output))),
+            followup=Mock(return_value=SimpleNamespace(
+                name="local-followup", generate_followup=Mock(return_value=followup_output))),
+        )
+        with patch("services.ai_evaluation.make_benchmark_adapter", return_value=adapter):
+            planning = evaluate_planning([planning_fixture], "local")["cases"][0]
+            followup = evaluate_followup([followup_fixture], "local")["cases"][0]
+        for case in (planning, followup):
+            self.assertTrue(case["schema_valid"])
+            self.assertFalse(case["privacy_pass"])
+            self.assertFalse(case["passed"])
 
     def test_fallback_records_actual_local_provider_and_attempted_model(self):
         fixtures = load_fixtures(ROOT / "evals" / "fixtures.json")
