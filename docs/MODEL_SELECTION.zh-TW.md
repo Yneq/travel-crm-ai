@@ -27,5 +27,11 @@ Token 用量只記錄 provider 實際回報的數字：這次 Qwen/MLX 共回報
 下一個有意義的比較是跑 `scripts/train_followup_mlx.sh`：它會在 Apple Silicon 上做小型
 量化 LoRA 練習，並把基礎模型與 adapter 對 12 筆保留的合成案例的結果寫入
 `output/followup-adapter-comparison.json`。那份資料只驗證訓練流程；要判斷客戶場景的
-改善，仍需獨立、人工審核且合法去識別的任務樣本。需要雲端 GPU 的 vLLM、CUDA、
-NVFP4 與大型模型訓練，另行估價後再決定是否執行。
+改善，仍需獨立、人工審核且合法去識別的任務樣本。
+
+2026-10-03 曾在免費 Colab Tesla T4（15 GiB）執行 30 步 Hugging Face QLoRA
+合成資料練習；訓練 cell 回傳 `returncode=0`。但 Colab 隨後重建工作階段，暫存的
+`report.json` 未保留下來，因此**沒有可驗證的前後 test loss 數字，也不能宣稱
+adapter 改善品質**。Notebook 已改為在同一個訓練 cell 直接印出完整報告，供下次
+免費 GPU 額度恢復時重跑並保留輸出。當次重試 Colab 顯示免費 GPU 用量上限，未使用
+付費資源。vLLM、NVFP4 與大型模型訓練仍需另行評估成本。

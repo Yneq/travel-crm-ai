@@ -28,13 +28,16 @@ documents that LoRA training on a quantized model is QLoRA.
 
 For an optional **free Colab CUDA GPU**, use
 [`notebooks/colab_qlora_followup.ipynb`](../../notebooks/colab_qlora_followup.ipynb).
-If the latest branch has not been pushed to GitHub, the notebook asks you to
-select the local `travel-crm-ai-mac-stages.bundle` file and imports it into its
-temporary runtime. This uses Hugging Face's original
+If the latest branch has not been pushed to GitHub, upload the local
+`travel-crm-ai-mac-stages.bundle` through Colab's **Files → Upload to session
+storage** control before running the second code cell. The notebook imports it
+into its temporary runtime. This uses Hugging Face's original
 `Qwen/Qwen2.5-1.5B-Instruct`, not the MLX checkpoint; adapters from the two
 runtimes are not interchangeable. The notebook stops if no CUDA GPU is
 available, installs only optional CUDA dependencies, and calls
 `scripts/train_followup_cuda.py`. It compares held-out loss before and after
-30 QLoRA steps and writes a local report. Do not select a paid Colab plan or
+30 QLoRA steps, prints the full report into the notebook output, and writes a
+temporary local report. The printed report survives runtime recycling if the
+notebook saves its output; the temporary file does not. Do not select a paid Colab plan or
 purchase compute units for this exercise. Free GPU allocation is not
 guaranteed. No adapter is pushed to a model hub.

@@ -457,7 +457,9 @@ models on the same held-out cases. This is a pipeline exercise, not evidence
 that fine-tuning improved the customer task.
 An optional [free-Colab CUDA notebook](notebooks/colab_qlora_followup.ipynb)
 runs the same synthetic data through a separate Hugging Face QLoRA exercise;
-it requires an available free GPU and never selects a paid runtime.
+it requires an available free GPU and never selects a paid runtime. The
+[model selection record](docs/MODEL_SELECTION.zh-TW.md) notes one completed
+T4 training smoke run and why its held-out loss is still unverified.
 
 ## Background worker and retry queue
 
