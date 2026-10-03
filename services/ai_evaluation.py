@@ -132,6 +132,7 @@ def evaluate_planning(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": guardrail_pass, "privacy_pass": privacy_pass,
                 "claim_safety_pass": claim_safety_pass, "latency_ms": round(latency_ms, 2),
                 "tool_selection_pass": None, "token_usage": _usage(provider),
+                "provider_attempted": target.provider, "model_attempted": target.model,
                 **_identity(provider.name), "error": None,
             })
         except Exception as exc:
@@ -141,7 +142,8 @@ def evaluate_planning(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
                 "tool_selection_pass": None, "token_usage": _usage(provider),
-                **_identity(provider.name if _usage(provider)["status"] == "reported" else None),
+                "provider_attempted": target.provider, "model_attempted": target.model,
+                **_identity(None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
@@ -171,6 +173,7 @@ def evaluate_followup(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": guardrail_pass, "privacy_pass": privacy_pass,
                 "claim_safety_pass": claim_safety_pass, "latency_ms": round(latency_ms, 2),
                 "tool_selection_pass": None, "token_usage": _usage(provider),
+                "provider_attempted": target.provider, "model_attempted": target.model,
                 **_identity(provider.name), "error": None,
             })
         except Exception as exc:
@@ -180,7 +183,8 @@ def evaluate_followup(fixtures: list[dict], provider_name: str,
                 "guardrail_pass": False, "privacy_pass": False, "claim_safety_pass": False,
                 "latency_ms": round(latency_ms, 2), "error": f"{type(exc).__name__}: {exc}",
                 "tool_selection_pass": None, "token_usage": _usage(provider),
-                **_identity(provider.name if _usage(provider)["status"] == "reported" else None),
+                "provider_attempted": target.provider, "model_attempted": target.model,
+                **_identity(None),
             })
     return {"provider": provider.name, "summary": _score(results), "cases": results}
 
@@ -279,6 +283,7 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str,
                 "schema_valid": schema_valid, "guardrail_pass": guardrail_pass,
                 "privacy_pass": privacy_pass, "claim_safety_pass": claim_safety_pass,
                 "provider_pass": provider_pass, "provider": output["provider"],
+                "provider_attempted": target.provider, "model_attempted": target.model,
                 "fallback_used": output["fallback_used"],
                 "token_usage": _usage(provider, scope="final_response_only" if provider_name == "gemini" else "response"),
                 "model": _identity(output["provider"])["model"],
@@ -292,6 +297,7 @@ def evaluate_operations_agent(fixtures: list[dict], provider_name: str,
                 "actual_tools": [], "schema_valid": False, "guardrail_pass": False,
                 "privacy_pass": False, "claim_safety_pass": False,
                 "provider_pass": False, "provider": None, "fallback_used": False,
+                "provider_attempted": target.provider, "model_attempted": target.model,
                 "model": None, "token_usage": _usage(provider, scope="final_response_only" if provider_name == "gemini" else "response"),
                 "latency_ms": round(latency_ms, 2),
                 "error": f"{type(exc).__name__}: {exc}",

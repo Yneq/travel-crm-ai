@@ -4,7 +4,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from services.ai_evaluation import _usage, contains_risky_claim, load_fixtures, run_benchmark, run_evaluation
+from services.ai_evaluation import (
+    _usage, contains_risky_claim, evaluate_followup, evaluate_operations_agent,
+    evaluate_planning, load_fixtures, run_benchmark, run_evaluation,
+)
 from services.benchmark_provider import BenchmarkTarget, make_benchmark_adapter
 from services.mlx_provider import MlxOperationsAgentProvider, MlxRuntime, _load, _parse_json
 
@@ -58,6 +61,41 @@ class AIEvaluationTests(unittest.TestCase):
             prompt_token_count=10, candidates_token_count=4, total_token_count=14))
         self.assertEqual(14, _usage(provider)["total_tokens"])
         self.assertEqual("unavailable", _usage(SimpleNamespace())["status"])
+
+    def test_failed_generation_separates_attempted_from_actual_provider(self):
+        fixtures = load_fixtures(ROOT / "evals" / "fixtures.json")
+        target = BenchmarkTarget("gemini", "test-model")
+        provider = SimpleNamespace(name="gemini:test-model", last_usage=None,
+                                   generate_followup=Mock(side_effect=RuntimeError("offline")))
+        adapter = SimpleNamespace(planning=Mock(return_value=provider),
+                                  followup=Mock(return_value=provider))
+        with patch("services.ai_evaluation.make_benchmark_adapter", return_value=adapter), \
+             patch("services.ai_evaluation.run_planning_graph", side_effect=RuntimeError("offline")):
+            planning = evaluate_planning(fixtures["planning"][:1], "gemini", target)["cases"][0]
+            followup = evaluate_followup(fixtures["followup"][:1], "gemini", target)["cases"][0]
+        for case in (planning, followup):
+            self.assertFalse(case["passed"])
+            self.assertEqual("gemini", case["provider_attempted"])
+            self.assertEqual("test-model", case["model_attempted"])
+            self.assertIsNone(case["provider"])
+            self.assertIsNone(case["model"])
+            self.assertEqual("unavailable", case["token_usage"]["status"])
+
+    def test_fallback_records_actual_local_provider_and_attempted_model(self):
+        fixtures = load_fixtures(ROOT / "evals" / "fixtures.json")
+        target = BenchmarkTarget("gemini", "test-model")
+        provider = SimpleNamespace(name="gemini:test-model", last_usage=None,
+                                   run=Mock(side_effect=RuntimeError("offline")))
+        adapter = SimpleNamespace(operations=Mock(return_value=provider))
+        with patch("services.ai_evaluation.make_benchmark_adapter", return_value=adapter):
+            case = evaluate_operations_agent(
+                fixtures["operations_agent"][:1], "gemini", target
+            )["cases"][0]
+        self.assertEqual("langgraph-local", case["provider"])
+        self.assertEqual("gemini", case["provider_attempted"])
+        self.assertEqual("test-model", case["model_attempted"])
+        self.assertTrue(case["fallback_used"])
+        self.assertFalse(case["provider_pass"])
 
     def test_mlx_target_is_optional_and_has_a_fixed_default_model(self):
         target = BenchmarkTarget("mlx")

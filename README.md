@@ -409,6 +409,11 @@ comes from Gemini response metadata when present; missing counts are marked
 `unavailable`. For automatic tool calls, the operations count may cover only
 the final response. No cost is inferred. These checks measure explicit
 contracts and ten tool-routing prompts, not subjective answer quality.
+Each case also records `provider_attempted` and `model_attempted`. If generation
+fails before a usable response, `provider` and `model` are null while the
+attempted fields retain the selected target. If the Operations Agent falls back
+to its local router, `provider` identifies that local router and
+`fallback_used` is true.
 
 For the optional Qwen/MLX target on Apple Silicon, install the separate
 dependency set and run the same fixtures. The first run downloads the model;
