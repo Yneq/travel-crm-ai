@@ -469,7 +469,12 @@ An optional [free-Colab CUDA notebook](notebooks/colab_qlora_followup.ipynb)
 runs the same synthetic data through a separate Hugging Face QLoRA exercise;
 it requires an available free GPU and never selects a paid runtime. The
 [model selection record](docs/MODEL_SELECTION.zh-TW.md) notes one completed
-T4 training smoke run and why its held-out loss is still unverified.
+T4 training run on 2026-10-10: after 30 steps, held-out loss decreased from
+**1.8404 to 1.0163** on 12 synthetic test examples. The
+[saved report](evals/finetune.colab-t4-2026-10-10.json) includes the source commit,
+dataset hashes, and package versions. This establishes a working training
+pipeline; generation quality and customer-task improvement still require a
+separate evaluation.
 
 ## Background worker and retry queue
 

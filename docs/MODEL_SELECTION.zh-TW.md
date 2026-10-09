@@ -33,9 +33,15 @@ Token 用量只記錄 provider 實際回報的數字：這次 Qwen/MLX 共回報
 `output/followup-adapter-comparison.json`。那份資料只驗證訓練流程；要判斷客戶場景的
 改善，仍需獨立、人工審核且合法去識別的任務樣本。
 
-2026-10-03 曾在免費 Colab Tesla T4（15 GiB）執行 30 步 Hugging Face QLoRA
-合成資料練習；訓練 cell 回傳 `returncode=0`。但 Colab 隨後重建工作階段，暫存的
-`report.json` 未保留下來，因此**沒有可驗證的前後 test loss 數字，也不能宣稱
-adapter 改善品質**。Notebook 已改為在同一個訓練 cell 直接印出完整報告，供下次
-免費 GPU 額度恢復時重跑並保留輸出。當次重試 Colab 顯示免費 GPU 用量上限，未使用
-付費資源。vLLM、NVFP4 與大型模型訓練仍需另行評估成本。
+2026-10-10 已在免費 Colab Tesla T4 完成 30 步 Hugging Face QLoRA 合成資料練習，
+並保存[完整報告](../evals/finetune.colab-t4-2026-10-10.json)。模型為
+`Qwen/Qwen2.5-1.5B-Instruct`，NF4 4-bit、LoRA rank 8；train／valid／test
+各有 60／12／12 筆。保留測試集 loss 從 **1.8404 降至 1.0163**，train loss
+為 1.3266。報告保留程式 commit、各資料 split 的 SHA-256 與套件版本，
+Notebook 輸出也保留完整數字。
+
+這驗證了資料準備、量化模型載入、LoRA 訓練與保留集 loss 比較的流程。
+標籤仍來自同一套 deterministic 合成模板，因此 loss 下降只能反映對這批標籤的
+擬合；尚未比較 adapter 生成內容的 Schema／Guardrail／任務品質，不能據此改變
+目前模型選型。報告的 `precision` 是程式選擇的計算 dtype，此實驗沒有比較
+不同精度的效能。全程未購買 Colab 方案或 compute units；成本沒有估算。

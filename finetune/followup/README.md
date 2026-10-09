@@ -41,3 +41,6 @@ temporary local report. The printed report survives runtime recycling if the
 notebook saves its output; the temporary file does not. Do not select a paid Colab plan or
 purchase compute units for this exercise. Free GPU allocation is not
 guaranteed. No adapter is pushed to a model hub.
+The final cell adds the source commit, dataset SHA-256 values, and installed
+package versions to the report, prints it, and downloads `report.json` so it
+can be retained outside the temporary runtime.

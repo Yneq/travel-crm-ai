@@ -1,0 +1,37 @@
+{
+  "task": "synthetic_followup_json",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "gpu": "Tesla T4",
+  "precision": "bf16",
+  "quantization": "bitsandbytes NF4 4-bit QLoRA",
+  "steps": 30,
+  "split_sizes": {
+    "train": 60,
+    "valid": 12,
+    "test": 12
+  },
+  "base_test_loss": 1.8403555154800415,
+  "adapted_test_loss": 1.016278624534607,
+  "train_loss": 1.326553217569987,
+  "adapter_path": "/content/followup-colab-qlora/adapter",
+  "cost": "not measured; use only an explicitly free Colab runtime",
+  "limitations": [
+    "Labels are deterministic synthetic templates, not human-reviewed customer data.",
+    "Held-out loss alone does not establish improvement in customer-facing quality."
+  ],
+  "recorded_at": "2026-10-09T16:45:38.612365+00:00",
+  "source_commit": "b12680f34a62712f2eeb4526165902d07b7cc819",
+  "dataset_sha256": {
+    "train": "0bae35d5d6153688fb082428fb9172dcd020bd5c149c6a37346d3e505306b526",
+    "valid": "00561d3320f78c72d6b3bad3aa3c7a9bd06162702157dddd875605f5c71eacf0",
+    "test": "d155be80e48f32436c2f2a56184e4cc422c325c3677f4649f1f6f9df537a5781"
+  },
+  "software_versions": {
+    "torch": "2.11.0+cu130",
+    "transformers": "4.57.6",
+    "peft": "0.21.1",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.15.0",
+    "datasets": "4.8.5"
+  }
+}
