@@ -45,3 +45,5 @@ Notebook 輸出也保留完整數字。
 擬合；尚未比較 adapter 生成內容的 Schema／Guardrail／任務品質，不能據此改變
 目前模型選型。報告的 `precision` 是程式選擇的計算 dtype，此實驗沒有比較
 不同精度的效能。全程未購買 Colab 方案或 compute units；成本沒有估算。
+本機已保存訓練報告；adapter 壓縮檔雖在 Colab runtime 建立，內建瀏覽器下載尚未
+驗證成功，不能把報告中的暫存 `adapter_path` 當成已保存的本機模型。

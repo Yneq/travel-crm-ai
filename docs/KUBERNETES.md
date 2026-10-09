@@ -48,3 +48,20 @@ and `kubectl -n voyageops logs deployment/api -c migrate`.
 a cluster. The MySQL StatefulSet uses a 5 Gi persistent volume; Redis is
 ephemeral because MySQL stores the durable job ledger. This configuration is a
 local deployment demonstration, not a production high-availability setup.
+
+## Verified local run
+
+The [2026-10-10 deployment record](../evals/deployment.kind-mac-2026-10-10.json)
+captures an actual Apple Silicon run with Docker Desktop 29.7.2, kind 0.33.0,
+Kubernetes 1.37.0, and kubectl 1.36.1. All four pods became ready, all 12 SQL
+migrations completed, and the worker completed its scheduled reminder-scan job.
+`/health/live`, `/health/ready`, `/metrics`, and `/admin` each returned HTTP 200;
+the readiness response confirmed both MySQL and Redis connections.
+
+On a fresh cluster, the migration init container may initially fail while
+MySQL downloads or initializes. Kubernetes retries it; the API starts after
+migration success and the worker readiness probe waits for the job table.
+If the init container continues failing after MySQL is ready, inspect its logs
+with the command above. The saved record includes init restart counts, image
+identifiers, and the HTTP checks rather than treating manifest rendering as a
+successful deployment.

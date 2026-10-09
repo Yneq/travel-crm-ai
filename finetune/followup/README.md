@@ -42,5 +42,8 @@ notebook saves its output; the temporary file does not. Do not select a paid Col
 purchase compute units for this exercise. Free GPU allocation is not
 guaranteed. No adapter is pushed to a model hub.
 The final cell adds the source commit, dataset SHA-256 values, and installed
-package versions to the report, prints it, and downloads `report.json` so it
-can be retained outside the temporary runtime.
+package versions to the report, prints it, and creates an archive containing
+the report and trained adapter. It then requests a browser download of
+`followup-colab-qlora-artifacts.zip`. Verify that the file is actually saved;
+some embedded browsers do not complete Colab downloads. The archive is also
+available in the runtime's Files sidebar while that runtime is retained.

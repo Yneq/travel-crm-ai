@@ -456,6 +456,9 @@ The [local Kubernetes guide](docs/KUBERNETES.md) deploys the existing API,
 worker, MySQL, and Redis with probes, a persistent MySQL volume, and a
 migration init container. It uses local deterministic AI providers and requires
 no NVIDIA GPU. Render the manifests offline with `kubectl kustomize k8s/local`.
+The [verified Mac deployment](evals/deployment.kind-mac-2026-10-10.json) records
+four ready pods, 12 applied migrations, a completed worker job, and HTTP 200
+responses from the health, metrics, and admin endpoints.
 
 The [synthetic follow-up dataset](finetune/followup/README.md) contains
 60 training, 12 validation, and 12 test examples in MLX-LM chat format.

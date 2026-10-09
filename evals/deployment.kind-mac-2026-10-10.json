@@ -1,0 +1,88 @@
+{
+  "recorded_at": "2026-10-09T17:41:46.034947+00:00",
+  "environment": "local Apple Silicon Mac / Docker Desktop / kind",
+  "cluster": "kind-voyageops",
+  "namespace": "voyageops",
+  "source_commit": "a3d1166de9712f46098fdfc0cc506250f7d294b2",
+  "docker_version": "29.7.2",
+  "kind_version": "kind v0.33.0 go1.26.7 darwin/arm64",
+  "kubernetes_server_version": "v1.37.0",
+  "application_image_id": "sha256:fdefa5eff59b5ddac9285086f50a0bb17916fec9ea5ff474f1418f6fad219d93",
+  "pods": [
+    {
+      "name": "api-69d7f59c7b-w4kt6",
+      "phase": "Running",
+      "containers_ready": true,
+      "container_images": {
+        "api": "docker.io/library/import-2026-10-09@sha256:a7903047e07bef7f31f8dc2d4de430dc77f8e16e71d2934d85ed51a828265096"
+      },
+      "init_container_restarts": {
+        "migrate": 4
+      }
+    },
+    {
+      "name": "mysql-0",
+      "phase": "Running",
+      "containers_ready": true,
+      "container_images": {
+        "mysql": "docker.io/library/mysql@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242"
+      },
+      "init_container_restarts": {}
+    },
+    {
+      "name": "redis-6cbf944f5b-rxhk5",
+      "phase": "Running",
+      "containers_ready": true,
+      "container_images": {
+        "redis": "docker.io/library/redis@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499"
+      },
+      "init_container_restarts": {}
+    },
+    {
+      "name": "worker-cb76b74c4-tsl6m",
+      "phase": "Running",
+      "containers_ready": true,
+      "container_images": {
+        "worker": "docker.io/library/import-2026-10-09@sha256:a7903047e07bef7f31f8dc2d4de430dc77f8e16e71d2934d85ed51a828265096"
+      },
+      "init_container_restarts": {}
+    }
+  ],
+  "http_checks": {
+    "/health/live": {
+      "status_code": 200,
+      "content_type": "application/json",
+      "body": {
+        "status": "ok",
+        "service": "voyageops-api"
+      }
+    },
+    "/health/ready": {
+      "status_code": 200,
+      "content_type": "application/json",
+      "body": {
+        "status": "ready",
+        "components": {
+          "mysql": true,
+          "redis": true
+        }
+      }
+    },
+    "/metrics": {
+      "status_code": 200,
+      "content_type": "text/plain; version=0.0.4; charset=utf-8",
+      "has_prometheus_metrics": true
+    },
+    "/admin": {
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "has_html": true
+    }
+  },
+  "database_checks": {
+    "applied_migrations": 12,
+    "worker_jobs_by_status": {
+      "completed": 1
+    }
+  }
+}
