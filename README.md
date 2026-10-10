@@ -558,3 +558,20 @@ and email adapters, managed secret storage, infrastructure alerting, backups,
 and organization-specific privacy/compliance controls require provider accounts
 and a deployment environment. Until those exist, the integration status remains
 fail-closed and no external payment or message action is performed.
+
+### Independent open-source model API (CPU Kubernetes)
+
+An optional Qwen CPU service is separate from the CRM API and can run inside
+Apple Silicon kind without CUDA. Compare it with the same 16-case benchmark via
+`--target model-api:Qwen/Qwen2.5-0.5B-Instruct`. Model identity and token counts are
+returned by the service. See [deployment and evaluation instructions](docs/MODEL_API.md).
+This is CPU FP32 deployment; it does not establish GPU precision performance,
+customer quality, production readiness, or a base/adapter quality improvement.
+
+Verified CPU run (2026-10-11): local 16/16; Qwen API 10/16 with a soft 30s
+per-generation budget. All ten Agent cases used the model (no fallback), with
+10/10 tool selection; planning/follow-up JSON was truncated and failed.
+Mean case latency was 49.34s, p95 62.46s, including routing/repair. This CPU
+configuration remains experimental and is not the CRM default. See the
+[recorded benchmark](evals/benchmark.model-api-cpu-bounded-2026-10-11.json)
+and [limitations](docs/MODEL_API.md).

@@ -1,0 +1,28 @@
+{
+  "verification_context": "CRM pod provider factory → in-cluster model Service; synthetic regression tool data, not authenticated UI or live customer data",
+  "result": {
+    "answer": "好的，我會幫您整理和分析營運總覽相關的資料。\n\n### 营運總覽概述\n\n1. **目的**：\n   - 統計和分析公司的營運狀況",
+    "tools_used": [
+      {
+        "tool": "operations_overview",
+        "label": "營運總覽",
+        "result_count": 1
+      }
+    ],
+    "node_trace": [
+      "model_route_intent",
+      "function_call:operations_overview",
+      "model_synthesize_evidence",
+      "enforce_read_only_guardrail"
+    ],
+    "guardrails": {
+      "read_only_tools": true,
+      "requires_human_confirmation": true,
+      "external_actions_executed": false,
+      "note": "模型只能呼叫唯讀 CRM 工具，不會自行建立訂單、付款或發送訊息。"
+    },
+    "provider": "model-api:Qwen/Qwen2.5-0.5B-Instruct",
+    "fallback_used": false,
+    "action_candidates": []
+  }
+}

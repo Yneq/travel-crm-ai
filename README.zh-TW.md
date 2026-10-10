@@ -463,3 +463,19 @@ SLA 統計、指派、過期與人工審核的終止狀態。
 Storage、Infrastructure Alert、Backup 與組織特定的隱私／法遵控制，都需要真實
 Provider Account 與部署環境。在這些條件完成前，Integration Status 會維持
 Fail-closed，不執行任何外部付款或寄信動作。
+
+### 獨立開源模型 API：CPU Kubernetes
+
+新增可獨立部署的 Qwen CPU 模型服務，與 CRM API 分開。在 Apple Silicon 的
+kind 中使用 Linux CPU／FP32 推論，不需要 NVIDIA GPU，也不使用 Apple Metal。
+可透過 `--target model-api:Qwen/Qwen2.5-0.5B-Instruct` 跑同一套 16 題評測；
+保留實際模型、token usage、失敗與 fallback。部署與比較步驟見
+[模型 API 文件](docs/MODEL_API.md)。此實驗不代表 GPU 精度效能、生產環境負載，
+或已證明微調改善客戶生成品質；現有 CRM 預設 provider 維持不變。
+
+2026-10-11 實測：local 16/16；Qwen API 在每次生成 30 秒的軟上限下為 10/16。
+10 題 Agent 都由模型完成（無 fallback），工具選擇 10/10；規劃與跟進的 JSON
+因截斷而失敗。平均每題 49.34 秒、p95 62.46 秒，包含路由與修復。此 CPU 配置
+保留為部署與選型實驗，不切換成 CRM 預設。見
+[評測報告](evals/benchmark.model-api-cpu-bounded-2026-10-11.json)與
+[實驗限制](docs/MODEL_API.md)。

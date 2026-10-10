@@ -202,7 +202,7 @@ def run_operations_agent_with_fallback(
     provider_name: str,
     provider=None,
 ) -> dict:
-    if provider_name == "local" or (provider_name != "gemini" and provider is None):
+    if provider_name == "local" or (provider_name not in ("gemini", "model-api") and provider is None):
         return run_operations_agent(question, execute_tool)
     try:
         active_provider = provider or get_operations_agent_provider(provider_name)

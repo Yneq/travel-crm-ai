@@ -69,7 +69,8 @@ def provider_status(_current_user: dict = Depends(get_current_user)):
         "active_model": (
             os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
             if active == "gemini"
-            else "local-planner"
+            else os.getenv("MODEL_API_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+            if active == "model-api" else "local-planner"
         ),
         "fallback_model": (
             os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite")

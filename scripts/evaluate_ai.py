@@ -16,8 +16,8 @@ from services.benchmark_provider import BenchmarkTarget
 
 def parse_target(value: str) -> BenchmarkTarget:
     provider, separator, model = value.partition(":")
-    if provider not in ("local", "gemini", "mlx") or (separator and not model):
-        raise argparse.ArgumentTypeError("Target must be local, gemini[:MODEL], or mlx[:MODEL]")
+    if provider not in ("local", "gemini", "mlx", "model-api") or (separator and not model):
+        raise argparse.ArgumentTypeError("Target must be local, gemini[:MODEL], mlx[:MODEL], or model-api[:MODEL]")
     if provider == "local" and separator:
         raise argparse.ArgumentTypeError("The local target has no model")
     return BenchmarkTarget(provider, model if separator else None)
@@ -25,10 +25,10 @@ def parse_target(value: str) -> BenchmarkTarget:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run VoyageOps fixed AI regression cases")
-    parser.add_argument("--provider", choices=("local", "gemini", "mlx"), default="local")
-    parser.add_argument("--model", help="Model for a single Gemini or MLX run")
+    parser.add_argument("--provider", choices=("local", "gemini", "mlx", "model-api"), default="local")
+    parser.add_argument("--model", help="Model for a single Gemini, MLX, or model-api run")
     parser.add_argument("--target", action="append", type=parse_target,
-                        help="Repeat for comparison, e.g. local --target gemini:MODEL")
+                        help="Repeat for comparison, e.g. --target local --target model-api:MODEL")
     parser.add_argument("--fixtures", type=Path, default=ROOT / "evals" / "fixtures.json")
     parser.add_argument("--output", type=Path)
     parser.add_argument(
@@ -38,7 +38,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     if args.model and args.provider == "local":
-        parser.error("--model requires --provider gemini or mlx")
+        parser.error("--model requires a model provider")
     if args.target and (args.provider != "local" or args.model):
         parser.error("Use --target on its own for multi-model comparisons")
     targets = args.target or [BenchmarkTarget(args.provider, args.model)]

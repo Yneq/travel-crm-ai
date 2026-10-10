@@ -132,6 +132,9 @@ class GeminiOperationsAgentProvider:
 
 def get_operations_agent_provider(name: str, *, model: str | None = None,
                                   fallback_model: str | None = None):
+    if name == "model-api":
+        from services.model_api_provider import DEFAULT_API_MODEL, ModelApiOperationsProvider
+        return ModelApiOperationsProvider(model or os.getenv("MODEL_API_MODEL", DEFAULT_API_MODEL))
     if name != "gemini":
         return None
     api_key = os.getenv("GEMINI_API_KEY")

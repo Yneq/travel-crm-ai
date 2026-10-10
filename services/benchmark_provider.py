@@ -18,12 +18,16 @@ class BenchmarkTarget:
     model: str | None = None
 
     def __post_init__(self):
-        if self.provider not in ("local", "gemini", "mlx"):
+        if self.provider not in ("local", "gemini", "mlx", "model-api"):
             raise ValueError(f"Unsupported benchmark provider: {self.provider}")
         if self.provider == "local" and self.model:
             raise ValueError("The deterministic local provider has no model")
         if self.provider == "mlx" and not self.model:
             object.__setattr__(self, "model", DEFAULT_MLX_MODEL)
+
+        if self.provider == "model-api" and not self.model:
+            from services.model_api_provider import DEFAULT_API_MODEL
+            object.__setattr__(self, "model", DEFAULT_API_MODEL)
 
     @property
     def label(self) -> str:
@@ -43,18 +47,27 @@ class ApplicationBenchmarkAdapter:
         self.target = target
 
     def planning(self):
+        if self.target.provider == "model-api":
+            from services.model_api_provider import ModelApiPlanningProvider
+            return ModelApiPlanningProvider(self.target.model)
         if self.target.provider == "mlx":
             from services.mlx_provider import MlxPlanningProvider
             return MlxPlanningProvider(self.target.model)
         return get_planning_provider(self.target.provider, model=self.target.model)
 
     def followup(self):
+        if self.target.provider == "model-api":
+            from services.model_api_provider import ModelApiFollowUpProvider
+            return ModelApiFollowUpProvider(self.target.model)
         if self.target.provider == "mlx":
             from services.mlx_provider import MlxFollowUpProvider
             return MlxFollowUpProvider(self.target.model)
         return get_followup_provider(self.target.provider, model=self.target.model)
 
     def operations(self):
+        if self.target.provider == "model-api":
+            from services.model_api_provider import ModelApiOperationsProvider
+            return ModelApiOperationsProvider(self.target.model)
         if self.target.provider == "local":
             return None
         if self.target.provider == "mlx":

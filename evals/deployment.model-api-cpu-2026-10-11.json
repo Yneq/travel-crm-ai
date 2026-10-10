@@ -1,0 +1,43 @@
+{
+  "recorded_at": "2026-10-10T17:17:15.315294+00:00",
+  "environment": "Apple Silicon / Docker Desktop / kind; Linux ARM64 CPU",
+  "cluster": "kind-voyageops",
+  "namespace": "voyageops",
+  "model_runtime": {
+    "status": "ready",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "device": "cpu",
+    "dtype": "float32",
+    "load_ms": 129513.66
+  },
+  "image_id": "sha256:6bd2ba7f4f801f7c02fea9c3d4ba7342a16c7adda945cc6534f7dc0c03397f66",
+  "source_parent_commit": "fe31ab5ff2e7d65ec3701a3068aa5a4991f098e6",
+  "source_files_sha256": {
+    "model_service/app.py": "7ca16d1364269ab477479d874f4ef447f8e1766ce1d4b22ae42c6f3116b17989",
+    "model_service/Dockerfile": "68181eda0ea1f8301182c6240d37ffb62d510d313172f1c8c182ba62920a3777",
+    "model_service/requirements.txt": "1fe3c2bd47750e4eb7b308f279fa2a995e4469d3810e3790eba6952e63f2ae3d",
+    "services/model_api_provider.py": "4b4ecb2a8763a0ee77f92d5b7003a22d2b9730c0cdabfc839f25405c9e8e2c08",
+    "services/benchmark_provider.py": "11bcd3828a2fdc72ebe59899212c4c66f0303f2f734938ff7ec0dc6507d55fcf",
+    "scripts/evaluate_ai.py": "33656cfb0fab6d24ab677827df5cd1655ed3e6977867aff328d5ff71bb64618c"
+  },
+  "pods": [
+    {
+      "name": "model-api-58d4555589-r8lrv",
+      "phase": "Running",
+      "containers": [
+        {
+          "name": "model-api",
+          "ready": true,
+          "restart_count": 0,
+          "image_id": "docker.io/library/import-2026-10-10@sha256:bc1e38a0ad8ce0063436630f215feacf2d0a2efdd5d73b4d0324a1957ee2156f"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Local sequential CPU deployment; not GPU precision comparison or production load testing.",
+    "Model download and load are included in load_ms, excluded from warmed benchmark case latency.",
+    "No paid inference API used; local electricity/network cost not measured."
+  ]
+}

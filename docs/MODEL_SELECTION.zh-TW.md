@@ -47,3 +47,16 @@ Notebook 輸出也保留完整數字。
 不同精度的效能。全程未購買 Colab 方案或 compute units；成本沒有估算。
 本機已保存訓練報告；adapter 壓縮檔雖在 Colab runtime 建立，內建瀏覽器下載尚未
 驗證成功，不能把報告中的暫存 `adapter_path` 當成已保存的本機模型。
+
+## 2026-10-11：獨立 CPU 模型 API 與 kind 部署
+
+Qwen2.5-0.5B-Instruct 已實際部署在 Kubernetes Pod，使用 Linux ARM64 CPU／FP32。
+首次完整比較因 HTTP 超時後仍生成而連鎖忙碌失敗：local 16/16、模型 API 1/16。
+加入每次生成 30 秒的軟上限後重跑，模型 API 10/16、local 16/16；10 個 Agent
+案例皆由指定模型完成，無 fallback，工具選擇 10/10。其餘 6 題因 JSON 截斷失敗。
+
+平均每題 49.34 秒、p95 62.46 秒，包含多次生成與 JSON 修復；不是吞吐量測試。
+因此保留 local 預設，不採用此 CPU 配置做互動 CRM 的主模型。這項結果證明
+部署、評測與失敗處理流程；不證明主觀回答品質、GPU 精度效能或成本優勢。
+不同模型大小與精度的舊 MLX 數據不能當作推論引擎效能的直接比較。
+詳見 [模型 API 實測與限制](MODEL_API.md)。

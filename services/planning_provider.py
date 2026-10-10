@@ -246,6 +246,9 @@ PROVIDERS: dict[str, PlanningProvider] = {"local": LocalPlanningProvider()}
 
 def get_planning_provider(name: str = "local", *, model: str | None = None,
                           fallback_model: str | None = None) -> PlanningProvider:
+    if name == "model-api":
+        from services.model_api_provider import DEFAULT_API_MODEL, ModelApiPlanningProvider
+        return ModelApiPlanningProvider(model or os.getenv("MODEL_API_MODEL", DEFAULT_API_MODEL))
     if name == "gemini":
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:

@@ -1,0 +1,76 @@
+{
+  "recorded_at": "2026-10-10T17:36:23.357509+00:00",
+  "environment": "Apple Silicon / Docker Desktop / kind; Linux ARM64 CPU",
+  "cluster": "kind-voyageops",
+  "namespace": "voyageops",
+  "model_runtime": {
+    "status": "ready",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "device": "cpu",
+    "dtype": "float32",
+    "load_ms": 4371.0,
+    "generation_budget_seconds": 30.0,
+    "busy": true
+  },
+  "image_id": "sha256:b8dbc59887115e131d3d4fa3a502a56fae8ee17c78ce7d926176bf5689f27f1a",
+  "source_parent_commit": "fe31ab5ff2e7d65ec3701a3068aa5a4991f098e6",
+  "source_files_sha256": {
+    "model_service/app.py": "0c77a49737840e55c1ecad5beb4439861b344861c3d1364d959fa672f0d441d3",
+    "model_service/Dockerfile": "e288580a31cbaf65f7fb31407398fe6e6b84fa32f100a83c0d30bd0fd67ad31a",
+    "model_service/requirements.txt": "1fe3c2bd47750e4eb7b308f279fa2a995e4469d3810e3790eba6952e63f2ae3d",
+    "services/model_api_provider.py": "6b1f633018f2497e1aa8f88e3d24a7f43fae4024f2163794b3188308baa183a3",
+    "services/benchmark_provider.py": "11bcd3828a2fdc72ebe59899212c4c66f0303f2f734938ff7ec0dc6507d55fcf",
+    "scripts/evaluate_ai.py": "33656cfb0fab6d24ab677827df5cd1655ed3e6977867aff328d5ff71bb64618c"
+  },
+  "pods": [
+    {
+      "name": "model-api-b5bb45c7d-kfsqv",
+      "phase": "Running",
+      "containers": [
+        {
+          "name": "model-api",
+          "ready": true,
+          "restart_count": 0,
+          "image_id": "docker.io/library/import-2026-10-10@sha256:e2049762b374ba7c9240d1bcdcf3e8e57f34222fa36d7e34263ee9dd46a01f48"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Local sequential CPU deployment; not GPU precision comparison or production load testing.",
+    "Model download and load are included in load_ms, excluded from warmed benchmark case latency.",
+    "No paid inference API used; local electricity/network cost not measured."
+  ],
+  "crm_image_id": "sha256:4804fa5d0f7366164e914788e1c0b1a417361f63058cd3f3a0aad06306de903b",
+  "crm_health_checks": {
+    "/health/live": {
+      "status_code": 200,
+      "content_type": "application/json",
+      "body": {
+        "status": "ok",
+        "service": "voyageops-api"
+      }
+    },
+    "/health/ready": {
+      "status_code": 200,
+      "content_type": "application/json",
+      "body": {
+        "status": "ready",
+        "components": {
+          "mysql": true,
+          "redis": true
+        }
+      }
+    },
+    "/metrics": {
+      "status_code": 200,
+      "content_type": "text/plain; version=0.0.4; charset=utf-8"
+    },
+    "/admin": {
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8"
+    }
+  },
+  "crm_pod_integration_evidence": "model-api-crm-pod-integration-2026-10-11.json"
+}
