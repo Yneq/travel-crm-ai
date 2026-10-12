@@ -26,17 +26,20 @@ def load_records(path: Path) -> list[dict]:
     return records
 
 
-def evaluate_records(records: list[dict], provider: MlxFollowUpProvider) -> dict:
+def evaluate_records(records: list[dict], provider: MlxFollowUpProvider, *, include_outputs: bool = False) -> dict:
     results = []
     for index, row in enumerate(records):
         prompt = row["messages"][0]["content"]
         expected = GeneratedFollowUp.model_validate_json(row["messages"][1]["content"])
         provider.last_usage = None
+        if hasattr(provider, "last_raw_output"):
+            provider.last_raw_output = None
         started = time.perf_counter()
         try:
             actual = GeneratedFollowUp.model_validate(provider.generate_json(prompt))
             results.append({
                 "case": index + 1,
+                **({"expected_output": expected.model_dump(), "generated_output": actual.model_dump()} if include_outputs else {}),
                 "schema_valid": True,
                 "guardrail_pass": actual.requires_human_review is True,
                 "privacy_pass": "@example.invalid" not in actual.model_dump_json()
@@ -50,6 +53,7 @@ def evaluate_records(records: list[dict], provider: MlxFollowUpProvider) -> dict
         except Exception as exc:
             results.append({
                 "case": index + 1,
+                **({"expected_output": expected.model_dump(), "raw_output": getattr(provider, "last_raw_output", None)} if include_outputs else {}),
                 "schema_valid": False, "guardrail_pass": False,
                 "privacy_pass": False, "claim_safety_pass": False,
                 "exact_label_match": False,
