@@ -47,3 +47,29 @@ the report and trained adapter. It then requests a browser download of
 `followup-colab-qlora-artifacts.zip`. Verify that the file is actually saved;
 some embedded browsers do not complete Colab downloads. The archive is also
 available in the runtime's Files sidebar while that runtime is retained.
+
+## Base vs QLoRA generated-content comparison (free Colab)
+
+After CUDA training, compare the same held-out prompts with the adapter disabled
+and enabled on one NF4 backbone:
+
+```sh
+python scripts/compare_followup_cuda.py \
+  --adapter-path /content/followup-colab-qlora/adapter \
+  --test-data finetune/followup/data/test.jsonl \
+  --output /content/followup-colab-qlora/generation-comparison.json
+```
+
+Install both `requirements.txt` and `requirements-colab.txt` for this command.
+Greedy decoding, a 512-token generation limit and one optional JSON repair are
+identical in both variants. Warm-up/model loading are excluded from case latency.
+The report saves schema, human-review flag, limited synthetic privacy canaries,
+unsafe-claim checks, exact deterministic-label match, token counts, generated
+content, test/adapter hashes and model revision. Generated examples let a reviewer
+inspect content rather than infer usefulness from test loss alone. Reports contain
+raw synthetic outputs; do not substitute real customer data without handling its
+privacy. Exact match is not semantic quality and synthetic results do not prove
+production improvement. No cost is estimated.
+
+The notebook now runs this comparison before exporting the adapter/report archive.
+A fresh Colab session may require retraining because session storage is temporary.

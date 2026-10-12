@@ -1,0 +1,988 @@
+{
+  "task": "synthetic_followup_json_generation",
+  "recorded_at": "2026-10-12T19:18:21.016967+00:00",
+  "gpu": "Tesla T4",
+  "model_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "quantization": "same NF4 4-bit backbone; adapter disabled/enabled",
+  "compute_dtype": "torch.bfloat16",
+  "max_new_tokens": 512,
+  "test_sha256": "d155be80e48f32436c2f2a56184e4cc422c325c3677f4649f1f6f9df537a5781",
+  "adapter_sha256": {
+    "adapter_model.safetensors": "2e29756284391985ce951e1d256c4dd6474a480fb3e4ac395666ab3c3a2051f2",
+    "added_tokens.json": "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b",
+    "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+    "tokenizer_config.json": "0a04a9d7d4a62b28482bdfe726c122756de85714fb64166ace92ae75b8f57614",
+    "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "tokenizer.json": "9c5ae00e602b8860cbd784ba82a8aa14e8feecec692e7076590d014d7b7fdafa",
+    "adapter_config.json": "16e0fd04d057e6b0b83078ad6db64032ea989848a0f3e703c2fdb660e7e7a61f"
+  },
+  "base": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "adapter_path": null,
+    "case_count": 12,
+    "metrics": {
+      "schema_valid": 1,
+      "guardrail_pass": 1,
+      "privacy_pass": 1,
+      "claim_safety_pass": 1,
+      "exact_label_match": 0
+    },
+    "latency": {
+      "average_ms": 8290.99,
+      "p95_ms": 11172.62
+    },
+    "cases": [
+      {
+        "case": 1,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：台北資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客024您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "台北資料核對任務即將到期，請確認負責人與最新進度。",
+          "recommended_steps": [
+            "確認任務詳情",
+            "聯繫負責人確認進度",
+            "更新任務狀態"
+          ],
+          "message_subject": "台北資料核對任務即將到期",
+          "message_body": "台北資料核對任務即將到期，請確認負責人與最新進度。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 6504.15,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 106,
+          "total_tokens": 339
+        },
+        "error": null
+      },
+      {
+        "case": 2,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：高雄資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客025您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "任務提醒：高雄資料核對",
+          "recommended_steps": [
+            "確認負責人",
+            "更新資料"
+          ],
+          "message_subject": "高雄資料核對提醒",
+          "message_body": "尊敬的合成旅客025，您好！根據您的任務提醒，我們需要確認高雄資料的核對工作。建議您確認負責人並更新相關資料。此任務將於24小時內到期，請盡快處理以避免影響您的行程安排。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 7105.72,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 113,
+          "total_tokens": 346
+        },
+        "error": null
+      },
+      {
+        "case": 3,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：首爾資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客026您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "任務到期提醒：首爾資料核對",
+          "recommended_steps": [
+            "確認負責人",
+            "更新進度"
+          ],
+          "message_subject": "任務到期提醒：首爾資料核對",
+          "message_body": "尊敬的合成旅客026，您好！您的任務「待辦即將到期：首爾資料核對」將於明日到期。建議您確認相關負責人並更新進度以確保任務順利進行。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 7229.9,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 234,
+          "output_tokens": 111,
+          "total_tokens": 345
+        },
+        "error": null
+      },
+      {
+        "case": 4,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：新加坡資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客027您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "任務提醒：新加坡資料核對",
+          "recommended_steps": [
+            "確認負責人",
+            "更新進度"
+          ],
+          "message_subject": "新加坡資料核對提醒",
+          "message_body": "尊敬的合成旅客027，您的任務「待辦即將到期：新加坡資料核對」已經在24小時內到期。為了確保數據的準確性，我們建議您確認相關負責人並更新最新的進度。此任務的嚴重性為高。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 6980.43,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 117,
+          "total_tokens": 350
+        },
+        "error": null
+      },
+      {
+        "case": 5,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-052。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客052您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "recommended_steps": [
+            "確認訂單狀態",
+            "核對付款紀錄"
+          ],
+          "message_subject": "待付款訂單：SYN-052",
+          "message_body": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 7535.87,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 112,
+          "total_tokens": 348
+        },
+        "error": null
+      },
+      {
+        "case": 6,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-053。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客053您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "recommended_steps": [
+            "確認訂單狀態",
+            "核對付款紀錄"
+          ],
+          "message_subject": "待付款訂單：SYN-053",
+          "message_body": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 6728.38,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 112,
+          "total_tokens": 348
+        },
+        "error": null
+      },
+      {
+        "case": 7,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-054。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客054您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "會員054的待付款訂單需要進一步確認。",
+          "recommended_steps": [
+            "核對訂單與付款紀錄",
+            "決定是否聯絡"
+          ],
+          "message_subject": "待付款訂單：SYN-054",
+          "message_body": "尊敬的會員054，您好！您的待付款訂單「SYN-054」將於不久後到期，建議您核對訂單與付款紀錄，並在確定無誤後再做決定是否聯絡我們進行下一步。此訊息僅作提醒，如有任何問題，歡迎隨時聯繫我們。謝謝！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 9427.61,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 148,
+          "total_tokens": 384
+        },
+        "error": null
+      },
+      {
+        "case": 8,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-055。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客055您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "recommended_steps": [
+            "確認訂單狀態",
+            "核對付款紀錄"
+          ],
+          "message_subject": "待付款訂單：SYN-055",
+          "message_body": "尊敬的旅客，您的訂單尚未完成支付，我們建議您核對訂單與付款紀錄，以確保一切正確。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 7270.98,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 112,
+          "total_tokens": 348
+        },
+        "error": null
+      },
+      {
+        "case": 9,
+        "expected_output": {
+          "internal_summary": "出發前確認：台北旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客080您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "台北旅程出發前確認提醒",
+          "recommended_steps": [
+            "確認文件",
+            "確認付款",
+            "確認最後行程版本"
+          ],
+          "message_subject": "台北旅程出發前確認提醒",
+          "message_body": "尊敬的合成旅客080，您好！您的台北旅程即將出發，為了確保一切順利進行，我們建議您進行以下確認工作：1. 確認文件是否完整且無誤；2. 確認付款狀態是否正常；3. 確認最後行程版本是否正確。此提醒旨在確保您的旅行體驗盡可能完美。謝謝合作！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 9829.5,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 159,
+          "total_tokens": 390
+        },
+        "error": null
+      },
+      {
+        "case": 10,
+        "expected_output": {
+          "internal_summary": "出發前確認：高雄旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客081您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "高雄旅程出發前確認提醒",
+          "recommended_steps": [
+            "確認文件",
+            "確認付款",
+            "確認最後行程版本"
+          ],
+          "message_subject": "高雄旅程出發前確認提醒",
+          "message_body": "尊敬的合成旅客081，您好！您的高雄旅程即將出發，為了確保一切順利進行，我們建議您進行以下確認工作：\n\n1. 確認文件是否完整且無誤。\n2. 確認付款是否已完成。\n3. 確認最後行程版本是否正確。\n\n感謝您的合作，如有任何問題，請隨時聯繫我們。謝謝！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 10167.4,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 168,
+          "total_tokens": 399
+        },
+        "error": null
+      },
+      {
+        "case": 11,
+        "expected_output": {
+          "internal_summary": "出發前確認：首爾旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客082您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "提醒：首爾旅程出發前確認",
+          "recommended_steps": [
+            "確認文件",
+            "確認付款",
+            "確認最後行程版本"
+          ],
+          "message_subject": "首爾旅程 出發前確認提醒",
+          "message_body": "尊敬的合成旅客082，您好！根據您的提醒，我們建議您在出發前進行以下確認工作：1. 確認文件是否完整且無誤；2. 確認付款狀態是否正常；3. 確認最後行程版本是否正確。此提醒旨在確保您的旅程順利進行。謝謝合作！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 9539.35,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 232,
+          "output_tokens": 155,
+          "total_tokens": 387
+        },
+        "error": null
+      },
+      {
+        "case": 12,
+        "expected_output": {
+          "internal_summary": "出發前確認：新加坡旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客083您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "提醒：行程即將出發，請確認文件、付款與最後行程版本。",
+          "recommended_steps": [
+            "確認文件",
+            "確認付款",
+            "檢查最後行程版本"
+          ],
+          "message_subject": "行程即將出發，請確認文件、付款與最後行程版本",
+          "message_body": "尊敬的合成旅客083，您的行程即將出發，為了確保一切順利進行，我們建議您確認以下事項：\n1. 檢查文件是否完整且無誤。\n2. 確認付款狀態，確保所有費用均已支付。\n3. 確保最後行程版本正確無誤，以避免任何可能的問題。\n感謝您的合作，祝您旅途愉快！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 11172.62,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 185,
+          "total_tokens": 416
+        },
+        "error": null
+      }
+    ]
+  },
+  "adapted": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "adapter_path": "/content/followup-colab-qlora/adapter",
+    "case_count": 12,
+    "metrics": {
+      "schema_valid": 1,
+      "guardrail_pass": 1,
+      "privacy_pass": 1,
+      "claim_safety_pass": 1,
+      "exact_label_match": 0
+    },
+    "latency": {
+      "average_ms": 6619.98,
+      "p95_ms": 10216.37
+    },
+    "cases": [
+      {
+        "case": 1,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：台北資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客024您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度"
+          ],
+          "message_subject": "顧問待辦即將到期",
+          "message_body": "顧問待辦即將到期，請確認負責人與最新進度。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 4939,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 69,
+          "total_tokens": 302
+        },
+        "error": null
+      },
+      {
+        "case": 2,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：高雄資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客025您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度"
+          ],
+          "message_subject": "顧問待辦即將到期",
+          "message_body": "顧問待辦即將到期，請確認負責人與最新進度。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 5685.51,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 69,
+          "total_tokens": 302
+        },
+        "error": null
+      },
+      {
+        "case": 3,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：首爾資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客026您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度"
+          ],
+          "message_subject": "顧問待辦即將到期",
+          "message_body": "顧問待辦即將到期，請確認負責人與最新進度。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 5123.38,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 234,
+          "output_tokens": 69,
+          "total_tokens": 303
+        },
+        "error": null
+      },
+      {
+        "case": 4,
+        "expected_output": {
+          "internal_summary": "待辦即將到期：新加坡資料核對。顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "旅程安排進度確認",
+          "message_body": "合成旅客027您好，我們正在確認您的旅程安排進度；待顧問核對最新資訊後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "顧問待辦將在 24 小時內到期",
+          "recommended_steps": [
+            "確認負責人與最新進度"
+          ],
+          "message_subject": "顧問待辦即將到期",
+          "message_body": "顧問待辦即將到期，請確認負責人與最新進度。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 5678.81,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 233,
+          "output_tokens": 69,
+          "total_tokens": 302
+        },
+        "error": null
+      },
+      {
+        "case": 5,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-052。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客052您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "待付款訂單：SYN-052",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "顧問編輯旅客聯絡草稿"
+          ],
+          "message_subject": "待付款訂單：SYN-052",
+          "message_body": "尊敬的合成旅客052，您好！我們收到您的聯絡，並確認了您的訂單。目前尚未付款，建議您在確定付款後再聯絡我們。如有任何問題，歡迎隨時聯繫我們。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 8217.4,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 114,
+          "total_tokens": 350
+        },
+        "error": null
+      },
+      {
+        "case": 6,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-053。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客053您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "待付款訂單：SYN-053",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "若需聯絡，請使用「合成旅客053」作為聯絡人"
+          ],
+          "message_subject": "待付款訂單：SYN-053",
+          "message_body": "尊敬的合成旅客053，您好！我們目前收到您的付款通知，但尚未確認最新的訂單狀態。如果您需要進一步了解此訂單的最新狀況，請於24小時內聯絡我們。如有任何問題，請隨時聯繫我們。謝謝！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 10216.37,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 134,
+          "total_tokens": 370
+        },
+        "error": null
+      },
+      {
+        "case": 7,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-054。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客054您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "待付款訂單：SYN-054",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "若需聯絡，請使用「合成旅客054」作為聯絡人"
+          ],
+          "message_subject": "待付款訂單：SYN-054",
+          "message_body": "尊敬的合成旅客054，您好！我們目前收到您的付款通知，但尚未確認最新的訂單狀態。如果您需要進一步了解此訂單的最新狀況，請於24小時內聯絡我們。感謝您理解。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 9461.32,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 124,
+          "total_tokens": 360
+        },
+        "error": null
+      },
+      {
+        "case": 8,
+        "expected_output": {
+          "internal_summary": "待付款訂單：SYN-055。付款期限接近，尚待人工確認最新狀態",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "付款狀態確認",
+          "message_body": "合成旅客055您好，我們想確認目前的付款狀態。如需協助，請告訴我們，我們會由顧問為您確認。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "待付款訂單：SYN-055",
+          "recommended_steps": [
+            "核對訂單與付款紀錄後再決定是否聯絡",
+            "若需聯絡，請使用「合成旅客055」作為聯絡人"
+          ],
+          "message_subject": "待付款訂單：SYN-055",
+          "message_body": "尊敬的合成旅客055，您好！我們目前收到您的付款通知，但尚未確認最新的訂單狀態。如果您需要進一步了解此訂單的最新狀況，請於1天內回覆此訊息。謝謝！",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 9979.53,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 236,
+          "output_tokens": 125,
+          "total_tokens": 361
+        },
+        "error": null
+      },
+      {
+        "case": 9,
+        "expected_output": {
+          "internal_summary": "出發前確認：台北旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客080您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本"
+          ],
+          "message_subject": "行程出發前確認",
+          "message_body": "行程即將出發，請確認文件、付款與最後行程版本。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 4866.71,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 66,
+          "total_tokens": 297
+        },
+        "error": null
+      },
+      {
+        "case": 10,
+        "expected_output": {
+          "internal_summary": "出發前確認：高雄旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客081您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本"
+          ],
+          "message_subject": "高雄旅程出發前確認",
+          "message_body": "行程即將出發，請確認文件、付款與最後行程版本。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 5344.09,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 67,
+          "total_tokens": 298
+        },
+        "error": null
+      },
+      {
+        "case": 11,
+        "expected_output": {
+          "internal_summary": "出發前確認：首爾旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客082您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本"
+          ],
+          "message_subject": "行程出發前確認",
+          "message_body": "行程即將出發，請確認文件、付款與最後行程版本。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 5047.25,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 232,
+          "output_tokens": 66,
+          "total_tokens": 298
+        },
+        "error": null
+      },
+      {
+        "case": 12,
+        "expected_output": {
+          "internal_summary": "出發前確認：新加坡旅程。行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本",
+            "核對 CRM 最新紀錄",
+            "由顧問修改並決定是否使用聯絡草稿"
+          ],
+          "message_subject": "出發前行程確認",
+          "message_body": "合成旅客083您好，您的旅程即將出發。我們正在做最後確認，顧問確認文件與行程版本後會再與您聯繫。",
+          "requires_human_review": true
+        },
+        "generated_output": {
+          "internal_summary": "行程即將出發，文件與版本需要再次核對",
+          "recommended_steps": [
+            "確認文件、付款與最後行程版本"
+          ],
+          "message_subject": "行程出發前確認",
+          "message_body": "行程即將出發，請確認文件、付款與最後行程版本。",
+          "requires_human_review": true
+        },
+        "schema_valid": true,
+        "guardrail_pass": true,
+        "privacy_pass": true,
+        "claim_safety_pass": true,
+        "exact_label_match": false,
+        "latency_ms": 4880.41,
+        "token_usage": {
+          "status": "reported",
+          "scope": "response",
+          "input_tokens": 231,
+          "output_tokens": 66,
+          "total_tokens": 297
+        },
+        "error": null
+      }
+    ]
+  },
+  "limitations": [
+    "Synthetic deterministic labels, not human-reviewed customer quality.",
+    "Greedy generation and one JSON repair allowed identically for both variants.",
+    "Latency includes generation, repair and validation; warm-up excluded; no throughput claim.",
+    "Privacy checks only synthetic canaries; no general PII audit.",
+    "Exact label match does not measure semantic usefulness.",
+    "Cost not measured; no paid API or model upload."
+  ],
+  "captured_at": "2026-10-12T19:20:32.605307+00:00",
+  "source_commit": "331bec4fd0f8b6041e4e8aea9383795142897c93",
+  "software_versions": {
+    "torch": "2.11.0+cu130",
+    "transformers": "4.57.6",
+    "peft": "0.21.1",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.15.0",
+    "datasets": "4.8.5"
+  },
+  "dataset_sha256": {
+    "train": "0bae35d5d6153688fb082428fb9172dcd020bd5c149c6a37346d3e505306b526",
+    "valid": "00561d3320f78c72d6b3bad3aa3c7a9bd06162702157dddd875605f5c71eacf0",
+    "test": "d155be80e48f32436c2f2a56184e4cc422c325c3677f4649f1f6f9df537a5781"
+  },
+  "runtime": "transformers/peft CUDA"
+}

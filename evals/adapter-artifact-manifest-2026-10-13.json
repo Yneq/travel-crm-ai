@@ -1,0 +1,14 @@
+{
+  "bytes": 4006252,
+  "sha256": "cd065510df0e96c66560be28d75c39502510f60a2e7c8d3dbad9777f734893a6",
+  "local_archive": "followup-qlora-adapter-2026-10-13.zip",
+  "format": "HF PEFT LoRA; not MLX adapter format",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "model_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "adapter_file_hashes": {
+    "adapter_model.safetensors": "2e29756284391985ce951e1d256c4dd6474a480fb3e4ac395666ab3c3a2051f2",
+    "adapter_config.json": "16e0fd04d057e6b0b83078ad6db64032ea989848a0f3e703c2fdb660e7e7a61f"
+  },
+  "verified_against_generation_report": true,
+  "retention": "Local output archive, weights not committed or published. Newly trained 2026-10-13; original 2026-10-10 adapter not recovered."
+}

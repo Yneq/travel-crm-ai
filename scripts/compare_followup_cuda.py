@@ -20,6 +20,7 @@ from services.mlx_provider import MlxRuntime
 class CudaRuntime(MlxRuntime):
     def __init__(self, model_id, model, tokenizer, adapter_path, *, adapted, max_tokens):
         super().__init__(model_id, adapter_path=str(adapter_path) if adapted else None)
+        self.name = f"hf-cuda:{model_id}"
         self.model = model
         self.tokenizer = tokenizer
         self.adapted = adapted
@@ -87,6 +88,7 @@ def main():
         print(label, runs[label]['metrics'], flush=True)
     report = {'task': 'synthetic_followup_json_generation',
         'recorded_at': datetime.now(timezone.utc).isoformat(),
+        'runtime': 'transformers/peft CUDA',
         'gpu': torch.cuda.get_device_name(0), 'model_revision': getattr(base.config, '_commit_hash', None),
         'quantization': 'same NF4 4-bit backbone; adapter disabled/enabled',
         'compute_dtype': str(dtype), 'max_new_tokens': args.max_tokens,

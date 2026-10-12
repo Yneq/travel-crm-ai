@@ -60,3 +60,33 @@ Qwen2.5-0.5B-Instruct 已實際部署在 Kubernetes Pod，使用 Linux ARM64 CPU
 部署、評測與失敗處理流程；不證明主觀回答品質、GPU 精度效能或成本優勢。
 不同模型大小與精度的舊 MLX 數據不能當作推論引擎效能的直接比較。
 詳見 [模型 API 實測與限制](MODEL_API.md)。
+
+## 2026-10-13：Base／QLoRA 的生成內容比較
+
+免費 Colab T4 重新訓練 30 steps，使用同一 NF4 backbone 關閉／開啟 adapter，
+以相同 12 個 held-out 合成提示、greedy decoding、512-token 上限比較。
+新一輪 test loss 為 1.8404 → 1.0216；與 10/10 的舊實驗分開保存。
+
+| 指標 | Base | Adapter |
+|---|---:|---:|
+| JSON schema | 12/12 | 12/12 |
+| 人審旗標／既有關鍵詞／有限 canary 檢查 | 12/12 | 12/12 |
+| 完整 deterministic label match | 0/12 | 0/12 |
+| 平均每題延遲（含驗證／可能修復） | 8.29 秒 | 6.62 秒 |
+| 輸出 tokens（全部 12 題） | 1,598 | 1,038 |
+
+輸出較短伴隨延遲降低，不能宣稱推論引擎加速或客戶品質提升。內容檢視發現
+adapter 的第 6–8 題聲稱「目前收到您的付款通知」，提示只提供待付款且尚待確認
+的資訊。這個無根據的事件說法沒有被現有關鍵詞檢查捕捉。此檢視是事後助理
+分析，不是全面自動化評分或人工標註。結論是**不採用此 adapter 作為已證明
+改善品質的模型，維持 local 預設**。模型輸出仍須人工審核。
+
+生成報告含每題 expected／actual 輸出、tokens、延遲、model revision、資料與
+adapter hashes：`evals/followup-generation.colab-t4-2026-10-13.json`。
+訓練報告：`evals/finetune.colab-t4-2026-10-13.json`；內容檢視另存
+`evals/followup-generation.content-review-2026-10-13.json`。本次新 adapter 已取回
+本機並校驗權重 hashes；10/10 的舊 adapter 並未恢復。權重不推送 GitHub。
+
+這項實驗已完成生成比較，仍不能證明真實客戶品質、全面隱私安全或生產效能。
+它和 CPU 0.5B 的 16-case benchmark 有不同模型、硬體、精度與測試集，不能直接
+比較速度／準確率。HF PEFT adapter 未轉換成 MLX 格式，也未載入 K8s 的 0.5B 服務。

@@ -575,3 +575,16 @@ Mean case latency was 49.34s, p95 62.46s, including routing/repair. This CPU
 configuration remains experimental and is not the CRM default. See the
 [recorded benchmark](evals/benchmark.model-api-cpu-bounded-2026-10-11.json)
 and [limitations](docs/MODEL_API.md).
+
+### Verified base vs QLoRA generations (2026-10-13)
+
+On a free Colab T4, the same NF4 Qwen2.5-1.5B backbone with its adapter disabled
+and enabled passed JSON schema on 12/12 held-out synthetic prompts in both modes;
+exact deterministic-label match was 0/12 in both. Test loss decreased from 1.8404
+to 1.0216, but generated outputs did not establish customer-quality improvement.
+A post-hoc inspection found unsupported payment-notification claims missed by
+literal safety checks. The adapter was retained locally and hash-verified; it is
+not adopted as the default or loaded into the CPU model service. See the
+[generated examples](evals/followup-generation.colab-t4-2026-10-13.json),
+[selection conclusion](docs/MODEL_SELECTION.zh-TW.md), and
+[reproduction steps](finetune/followup/README.md).

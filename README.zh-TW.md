@@ -479,3 +479,13 @@ kind 中使用 Linux CPU／FP32 推論，不需要 NVIDIA GPU，也不使用 App
 保留為部署與選型實驗，不切換成 CRM 預設。見
 [評測報告](evals/benchmark.model-api-cpu-bounded-2026-10-11.json)與
 [實驗限制](docs/MODEL_API.md)。
+
+### Base／QLoRA 生成比較（2026-10-13）
+
+免費 Colab T4 上，同一個 NF4 Qwen2.5-1.5B backbone 關閉／開啟 adapter，跑相同
+12 題 held-out 合成提示。兩者 JSON 都 12/12、完整 deterministic label match
+都 0/12；新一輪 loss 1.8404 → 1.0216，不能因此宣稱客戶品質提升。內容檢視也
+發現無根據的付款通知描述，未被既有關鍵詞檢查捕捉。因此維持 local 預設。
+本次 adapter 已保存本機且校驗 hashes，未載入 CPU 0.5B 模型服務。見
+[實際輸出報告](evals/followup-generation.colab-t4-2026-10-13.json)、
+[選型結論](docs/MODEL_SELECTION.zh-TW.md)與[重現步驟](finetune/followup/README.md)。

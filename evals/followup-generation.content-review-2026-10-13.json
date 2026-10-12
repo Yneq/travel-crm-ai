@@ -1,0 +1,21 @@
+{
+  "review_type": "post-hoc assistant inspection, not a validated automated metric or human annotation",
+  "decision": "Keep local default; do not adopt this adapter as improved customer-quality model.",
+  "findings": [
+    {
+      "variant": "adapted",
+      "cases": [
+        6,
+        7,
+        8
+      ],
+      "unsupported_claim": "目前收到您的付款通知",
+      "source_evidence": "付款期限接近，尚待人工確認最新狀態",
+      "reason": "Held-out prompts provide no evidence of receiving a payment notification; literal unsafe-claim checks did not detect this."
+    }
+  ],
+  "limitations": [
+    "This inspection highlights a concrete blind spot, not an exhaustive quality/security review.",
+    "Exact match is zero in both variants and cannot establish semantic improvement."
+  ]
+}

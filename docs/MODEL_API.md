@@ -116,3 +116,13 @@ is retained as a reproducible deployment/selection experiment. Do not compare
 these timings directly with the historical 1.5B MLX run: model size, precision,
 runtime and hardware differ. Base/finetuned generated-content comparison remains
 future work; the Colab adapter is not bundled into this service.
+
+### Later training experiment (2026-10-13)
+
+The separate Colab 1.5B base/QLoRA generated-content comparison is now complete,
+and the newly trained adapter has been retained locally and hash-verified.
+Both variants passed synthetic JSON contracts (12/12), but neither matched full
+labels (0/12), and content inspection found unsupported claims. See
+`evals/followup-generation.colab-t4-2026-10-13.json`. This does not change the
+CPU 0.5B service or its local default. Different datasets/models/precisions are
+not a controlled cross-runtime performance comparison.

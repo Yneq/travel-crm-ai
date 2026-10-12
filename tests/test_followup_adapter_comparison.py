@@ -38,5 +38,22 @@ class FollowupAdapterComparisonTests(unittest.TestCase):
         self.assertEqual(0.0, result["metrics"]["exact_label_match"])
 
 
+    def test_output_capture_is_opt_in_and_preserves_invalid_generation(self):
+        records = load_records(ROOT / "finetune/followup/data/test.jsonl")
+        provider = StubProvider()
+        provider.answer = records[0]["messages"][1]["content"]
+        self.assertNotIn("generated_output", evaluate_records(records[:1], provider)["cases"][0])
+        captured = evaluate_records(records[:1], provider, include_outputs=True)["cases"][0]
+        self.assertEqual(captured["expected_output"], captured["generated_output"])
+        class BrokenProvider(StubProvider):
+            last_raw_output = None
+            def generate_json(self, prompt):
+                self.last_raw_output = "invalid-json"
+                raise ValueError("invalid JSON")
+        failed = evaluate_records(records[:1], BrokenProvider(), include_outputs=True)["cases"][0]
+        self.assertEqual(failed["raw_output"], "invalid-json")
+        self.assertFalse(failed["schema_valid"])
+
+
 if __name__ == "__main__":
     unittest.main()
