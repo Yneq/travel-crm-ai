@@ -1,7 +1,19 @@
 # VoyageOps AI
 
 **English** | [繁體中文](README.zh-TW.md)
+## Tech Highlights
 
+- **LangGraph agent workflows**: a 4-node planning graph
+  (privacy-safe context → missing-info check → structured plan → quality guardrail)
+  and a CRM operations agent with intent routing and a tool-calling loop (Gemini function calling)
+- **Human-in-the-loop by design**: AI never writes to the CRM directly; a requested write
+  becomes a pending proposal (24h expiry) that an admin/advisor must approve,
+  followed by an atomic task + audit-log write
+- **Eval harness**: 12/12 deterministic AI regression cases (`evals/baseline.local.json`)
+  plus 75 automated tests
+- **Business process automation**: API-first travel CRM / ops platform
+  (FastAPI, MySQL, Redis, Docker) with full run traces stored in `ai_runs`
+- **Cost-aware**: deterministic local planner by default; Gemini is opt-in via env vars
 VoyageOps AI is an API-first travel CRM and operations platform evolved from the
 Taipei Day Trip booking project. It combines reliable backend contracts and
 operational data with guarded model-driven automation.
